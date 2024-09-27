@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Button, ButtonText } from "../ui/button";
 import { Plus } from "lucide-react-native";
+import { Fragment } from "react";
 
 export default function CustomTabBar({
   state,
@@ -53,7 +54,7 @@ export default function CustomTabBar({
         };
 
         return (
-          <>
+          <Fragment key={index}>
             {index === 2 && CenterButton}
             <TouchableOpacity
               key={route.key}
@@ -83,7 +84,7 @@ export default function CustomTabBar({
                   : label}
               </Text>
             </TouchableOpacity>
-          </>
+          </Fragment>
         );
       })}
     </View>
