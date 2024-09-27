@@ -1,7 +1,6 @@
 import { View, Text, TouchableOpacity } from "react-native";
-
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Button, ButtonText } from "../ui/button";
+import { Button } from "../ui/button";
 import { Plus } from "lucide-react-native";
 import { Fragment } from "react";
 
@@ -21,8 +20,11 @@ export default function CustomTabBar({
       </Button>
     </View>
   );
+
+  const middleIndex = Math.floor(tabsRoutes.length / 2);
+
   return (
-    <View className="flex-row gap-1 bg-black px-2 py-2">
+    <View className="min-h-12 flex-row gap-1 bg-black px-2 py-2">
       {tabsRoutes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label =
@@ -55,7 +57,7 @@ export default function CustomTabBar({
 
         return (
           <Fragment key={index}>
-            {index === 2 && CenterButton}
+            {index === middleIndex && CenterButton}
             <TouchableOpacity
               key={route.key}
               className="flex-1 items-center justify-center"
