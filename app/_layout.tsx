@@ -36,6 +36,7 @@ export default function RootLayout() {
             tabBarIcon: (color) => (
               <House
                 color={color.color}
+                fill={color.color !== "#000" ? "none" : color.color}
                 style={{ width: color.size, height: color.size }}
               />
             ),
@@ -61,6 +62,7 @@ export default function RootLayout() {
             tabBarIcon: (color) => (
               <MessageCircle
                 color={color.color}
+                fill={color.color !== "#000" ? "none" : color.color}
                 style={{ width: color.size, height: color.size }}
               />
             ),
@@ -73,6 +75,7 @@ export default function RootLayout() {
             tabBarIcon: (color) => (
               <UserRound
                 color={color.color}
+                fill={color.color !== "#000" ? "none" : color.color}
                 style={{ width: color.size, height: color.size }}
               />
             ),
