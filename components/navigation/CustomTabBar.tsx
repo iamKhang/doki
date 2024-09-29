@@ -20,14 +20,15 @@ export default function CustomTabBar({
   const isHome = state.index === 0;
 
   const CenterButton = (
-    <Box className="mt-1 flex items-center justify-start px-4">
+    <Box className="flex items-center justify-start px-4">
       <Button
         key="center"
         className={clsx(
           "rounded-lg bg-white",
           isHome ? "bg-white" : "bg-black",
         )}
-        size="sm">
+        size="sm"
+        style={{ marginTop: 8 }}>
         <Plus strokeWidth={2} color={isHome ? "#000" : "#fff"} />
       </Button>
     </Box>
@@ -35,9 +36,14 @@ export default function CustomTabBar({
   return (
     <Box
       className={clsx(
-        "min-h-12 flex-row gap-1 border-t-[0.5px] border-t-gray-300 px-2 py-2",
+        "flex-row gap-1 px-2 py-2",
         isHome ? "bg-black" : "bg-white",
-      )}>
+      )}
+      style={{
+        minHeight: 60,
+        borderTopWidth: 0.5,
+        borderTopColor: "rgb(209, 213, 219)",
+      }}>
       {tabsRoutes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label =
@@ -79,8 +85,7 @@ export default function CustomTabBar({
               accessibilityLabel={options.tabBarAccessibilityLabel}
               testID={options.tabBarTestID}
               onPress={onPress}
-              onLongPress={onLongPress}
-              style={{ flex: 1 }}>
+              onLongPress={onLongPress}>
               {typeof options.tabBarIcon === "function" ? (
                 <options.tabBarIcon
                   focused={isFocused}
