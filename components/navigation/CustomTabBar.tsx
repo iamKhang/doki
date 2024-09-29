@@ -1,8 +1,11 @@
-import { View, Text, TouchableOpacity } from "react-native";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Button } from "../ui/button";
 import { Plus } from "lucide-react-native";
 import { Fragment } from "react";
+import { Box } from "../ui/box";
+import { Pressable } from "../ui/pressable";
+import { Text } from "../ui/text";
+import clsx from "clsx";
 
 export default function CustomTabBar({
   state,
@@ -13,18 +16,34 @@ export default function CustomTabBar({
     ["index", "search", "notification", "profile"].includes(route.name),
   );
 
-  const CenterButton = (
-    <View className="mt-1 flex items-center justify-start px-4">
-      <Button key="center" className="rounded-lg bg-white" size="sm">
-        <Plus color="#000" />
-      </Button>
-    </View>
-  );
-
   const middleIndex = Math.floor(tabsRoutes.length / 2);
+  const isHome = state.index === 0;
 
+  const CenterButton = (
+    <Box className="flex items-center justify-start px-4">
+      <Button
+        key="center"
+        className={clsx(
+          "rounded-lg bg-white",
+          isHome ? "bg-white" : "bg-black",
+        )}
+        size="sm"
+        style={{ marginTop: 8 }}>
+        <Plus strokeWidth={2} color={isHome ? "#000" : "#fff"} />
+      </Button>
+    </Box>
+  );
   return (
-    <View className="min-h-12 flex-row gap-1 bg-black px-2 py-2">
+    <Box
+      className={clsx(
+        "flex-row gap-1 px-2 py-2",
+        isHome ? "bg-black" : "bg-white",
+      )}
+      style={{
+        minHeight: 54,
+        borderTopWidth: 0.5,
+        borderTopColor: "rgb(209, 213, 219)",
+      }}>
       {tabsRoutes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label =
@@ -58,7 +77,7 @@ export default function CustomTabBar({
         return (
           <Fragment key={index}>
             {index === middleIndex && CenterButton}
-            <TouchableOpacity
+            <Pressable
               key={route.key}
               className="flex-1 items-center justify-center"
               accessibilityRole="button"
@@ -66,29 +85,32 @@ export default function CustomTabBar({
               accessibilityLabel={options.tabBarAccessibilityLabel}
               testID={options.tabBarTestID}
               onPress={onPress}
-              onLongPress={onLongPress}
-              style={{ flex: 1 }}>
+              onLongPress={onLongPress}>
               {typeof options.tabBarIcon === "function" ? (
                 <options.tabBarIcon
                   focused={isFocused}
-                  color={isFocused ? "#fff" : "#888"}
+                  color={isFocused ? (isHome ? "#fff" : "#000") : "#888"}
                   size={24}
                 />
               ) : null}
-              <Text className={`${isFocused ? "text-white" : "text-[#888]"}`}>
+              <Text
+                className={clsx(
+                  "text-xs",
+                  isFocused ? (isHome ? "#fff" : "#000") : "#888",
+                )}>
                 {typeof label === "function"
                   ? label({
                       focused: isFocused,
-                      color: isFocused ? "#fff" : "#888",
+                      color: isFocused ? (isHome ? "#fff" : "#000") : "#888",
                       position: "below-icon",
                       children: "",
                     })
                   : label}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </Fragment>
         );
       })}
-    </View>
+    </Box>
   );
 }
