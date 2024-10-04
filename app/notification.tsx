@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   User,
 } from "lucide-react-native";
+import { ScrollView } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -71,11 +72,24 @@ const notifications = [
   },
   {
     avatar:
-      "https://vcdn1-giaitri.vnecdn.net/2020/12/27/Jack-5775-1609042368.jpg?w=460&h=0&q=100&dpr=2&fit=crop&s=AyQh7XQknwvQvA1VLzYvuw",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM-a8a8K3WFelnsiY6YK5eYRJRrC6VH3VSsA&s",
     title: "Pé Mèo Khờ",
     description: "Hãy chào Pé Mèo Khờ",
     follow: true,
   },
+];
+
+const userActive = [
+  "https://gamek.mediacdn.vn/133514250583805952/2021/8/22/kop2-1629615610767588022142.jpg",
+  "https://i.pinimg.com/736x/03/79/b4/0379b431813d7d7eac9808f81d66fcde.jpg",
+  "https://staticg.sportskeeda.com/editor/2024/02/b0a50-17076959766485-1920.jpg?w=640",
+  "https://img.tripi.vn/cdn-cgi/image/width=700,height=700/https://gcs.tripi.vn/public-tripi/tripi-feed/img/474116sST/anh-nami-one-piece-toc-cam_083559519.png",
+  "https://static.wikia.nocookie.net/onepiece/images/c/c8/Zoro_2_anni_dopo.png/revision/latest?cb=20200414102752&path-prefix=vi",
+  "https://static.wikia.nocookie.net/onepiece/images/8/8f/King_Anime_Infobox.png/revision/latest?cb=20200413151745&path-prefix=vi",
+  "https://static.wikia.nocookie.net/luffy_kun_wiki/images/1/15/Legiao_KwJGtAvdPVj1.jpg.jpg/revision/latest?cb=20211017132507&path-prefix=vi",
+  "https://cdn.idntimes.com/content-images/community/2020/01/4d2926af77ecaee94610a8db2d60d662-85f08b1bd0e0e56a912c96e831d50b75_600x400.jpg",
+  "https://beebom.com/wp-content/uploads/2023/07/Garp-entry.jpg",
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhcHl-X0THuSY2G2oCM3toka8M0SSAe_JuHw&s",
 ];
 
 export default function NotificationsPage() {
@@ -87,24 +101,25 @@ export default function NotificationsPage() {
             <AvatarFallbackText></AvatarFallbackText>
             <AvatarImage
               source={{
-                uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrY7dJj0QnImGcypj9oBdr9u9joHrxgaKY_g&s",
+                uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM-a8a8K3WFelnsiY6YK5eYRJRrC6VH3VSsA&s",
               }}
             />
             <AvatarBadge />
           </Avatar>
         </Box>
-        {[...Array(5)].map((_, index) => (
-          <Box key={index}>
-            <Avatar key={index} size="xl">
-              <AvatarFallbackText></AvatarFallbackText>
-              <AvatarImage
-                source={{
-                  uri: "https://img.hoidap247.com/picture/question/20200508/large_1588936738888.jpg?v=0",
-                }}
-              />
-            </Avatar>
-          </Box>
-        ))}
+        <HStack space="md">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {userActive.map((avatarUrl, index) => (
+              <Avatar key={index} size="xl">
+                <AvatarFallbackText></AvatarFallbackText>
+                <AvatarImage
+                  source={{ uri: avatarUrl }}
+                  alt={`user-avatar-${index}`}
+                />
+              </Avatar>
+            ))}
+          </ScrollView>
+        </HStack>
       </HStack>
       <Box className="mx-3 mt-8">
         <VStack space="xl">
@@ -124,6 +139,7 @@ export default function NotificationsPage() {
                       source={{
                         uri: item.avatar,
                       }}
+                      alt="avatar"
                     />
                   </Avatar>
                 )}

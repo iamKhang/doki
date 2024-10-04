@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   Avatar,
   AvatarFallbackText,
@@ -30,8 +31,41 @@ import {
   ScrollView,
 } from "react-native-gesture-handler";
 import Constants from "expo-constants";
+import * as VideoThumbnails from "expo-video-thumbnails";
+
+const videoUrls = [
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/video3.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/video3.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/video3.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/video3.mp4",
+];
 
 export default function ProfilePage() {
+  const [thumbnails, setThumbnails] = useState([]);
+
+  useEffect(() => {
+    const generateThumbnails = async () => {
+      const thumbnailUris = await Promise.all(
+        videoUrls.map(async (videoUrl) => {
+          try {
+            const { uri } = await VideoThumbnails.getThumbnailAsync(videoUrl, {
+              time: 3000,
+            });
+            return uri;
+          } catch (e) {
+            console.warn(e);
+            return null;
+          }
+        }),
+      );
+      setThumbnails(thumbnailUris);
+    };
+
+    generateThumbnails();
+  }, []);
+
   return (
     <GestureHandlerRootView>
       <ScrollView style={styles.container}>
@@ -51,6 +85,7 @@ export default function ProfilePage() {
                 source={{
                   uri: "https://img.hoidap247.com/picture/question/20200508/large_1588936738888.jpg?v=0",
                 }}
+                alt="avatar"
               />
             </Avatar>
             <Text>@_iamquanzkhang</Text>
@@ -120,14 +155,18 @@ export default function ProfilePage() {
           </HStack>
 
           <Box className="flex-row flex-wrap">
-            {[...Array(6)].map((_, index) => (
+            {thumbnails.map((thumbnail, index) => (
               <Box key={index} className="aspect-square w-1/3 p-1">
-                <Image
-                  source={{
-                    uri: `https://example.com/video-thumbnail-${index + 1}.jpg`,
-                  }}
-                  style={styles.thumbnail}
-                />
+                {thumbnail ? (
+                  <Image
+                    source={{ uri: thumbnail }}
+                    style={styles.thumbnail}
+                    alt="thumbnail"
+                    className="h-full w-full"
+                  />
+                ) : (
+                  <Text>Failed to load thumbnail</Text>
+                )}
                 <Text style={styles.viewCount}>229 N</Text>
               </Box>
             ))}
