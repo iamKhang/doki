@@ -6,6 +6,7 @@ import { Box } from "../ui/box";
 import { Pressable } from "../ui/pressable";
 import { Text } from "../ui/text";
 import clsx from "clsx";
+import { Platform } from "react-native";
 
 export default function CustomTabBar({
   state,
@@ -28,7 +29,7 @@ export default function CustomTabBar({
           isHome ? "bg-white" : "bg-black",
         )}
         size="sm"
-        style={{ marginTop: 8 }}>
+        style={{ marginTop: 4 }}>
         <Plus strokeWidth={2} color={isHome ? "#000" : "#fff"} />
       </Button>
     </Box>
@@ -38,6 +39,7 @@ export default function CustomTabBar({
       className={clsx(
         "flex-row gap-1 px-2 py-2",
         isHome ? "bg-black" : "bg-white",
+        { "mb-24": Platform.OS === "ios" },
       )}
       style={{
         minHeight: 54,

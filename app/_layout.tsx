@@ -7,7 +7,6 @@ import { useEffect } from "react";
 import "@/global.css";
 import * as SplashScreen from "expo-splash-screen";
 import "react-native-reanimated";
-
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
