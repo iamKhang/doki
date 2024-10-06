@@ -151,7 +151,7 @@ const VideoItem = React.memo(
 
 export default function HomePage() {
   const videoRefs = useRef<Video[]>([]);
-  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [isPlaying, setIsPlaying] = React.useState(true);
   const [showActionsheet, setShowActionsheet] = React.useState(false);
   const handleClose = () => setShowActionsheet(false);
 

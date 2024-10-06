@@ -1,4 +1,4 @@
-import supabase from "@/configs/supabase";
+import supabase from "@/configs/supabase/supabase";
 const BUCKET_NAME = "UPLOAD_BUCKET";
 /**
  * Upload a file to the specified bucket.

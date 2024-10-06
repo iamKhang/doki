@@ -27,7 +27,11 @@ export default function RootLayout() {
     <GluestackUIProvider mode={"system"}>
       <Tabs
         tabBar={(props) => <CustomTabBar {...props} />}
-        screenOptions={{ headerShown: false }}>
+        screenOptions={{
+          headerShown: false,
+          freezeOnBlur: true,
+          unmountOnBlur: true,
+        }}>
         <Tabs.Screen
           name="index"
           options={{
