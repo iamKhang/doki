@@ -21,7 +21,10 @@ import {
   User,
 } from "lucide-react-native";
 import { ScrollView } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
+import {
+  GestureHandlerRootView,
+  TouchableOpacity,
+} from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const notifications = [
@@ -77,6 +80,42 @@ const notifications = [
     description: "Hãy chào Pé Mèo Khờ",
     follow: true,
   },
+  {
+    avatar:
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM-a8a8K3WFelnsiY6YK5eYRJRrC6VH3VSsA&s",
+    title: "Pé Mèo Khờ",
+    description: "Hãy chào Pé Mèo Khờ",
+    follow: true,
+  },
+  {
+    avatar:
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM-a8a8K3WFelnsiY6YK5eYRJRrC6VH3VSsA&s",
+    title: "Pé Mèo Khờ",
+    description: "Hãy chào Pé Mèo Khờ",
+    follow: true,
+  },
+  {
+    avatar:
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM-a8a8K3WFelnsiY6YK5eYRJRrC6VH3VSsA&s",
+    title: "Pé Mèo Khờ",
+    description: "Hãy chào Pé Mèo Khờ",
+    follow: true,
+  },
+];
+
+const accountRecommend = [
+  {
+    avatar: "https://avatars.githubusercontent.com/u/85284772?v=4",
+    title: "Thanh Cảnh Kali",
+    description: "Follow bạn",
+    followed: true,
+  },
+  {
+    avatar: "https://avatars.githubusercontent.com/u/85284772?v=4",
+    title: "Kẻ bị lãng quên",
+    description: "Có thể bạn biết",
+    followed: false,
+  },
 ];
 
 const userActive = [
@@ -94,80 +133,133 @@ const userActive = [
 
 export default function NotificationsPage() {
   return (
-    <Box className="flex-1" style={{ marginTop: Constants.statusBarHeight }}>
-      <HStack space="md" reversed={false} className="pl-3">
-        <Box>
-          <Avatar size="xl">
-            <AvatarFallbackText></AvatarFallbackText>
-            <AvatarImage
-              source={{
-                uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM-a8a8K3WFelnsiY6YK5eYRJRrC6VH3VSsA&s",
-              }}
-            />
-            <AvatarBadge />
-          </Avatar>
-        </Box>
-        <HStack space="md">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {userActive.map((avatarUrl, index) => (
-              <Avatar key={index} size="xl">
+    <GestureHandlerRootView>
+      <Box className="flex-1" style={{ marginTop: Constants.statusBarHeight }}>
+        <HStack space="md" reversed={false} className="pl-3">
+          <HStack space="md">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <Avatar size="xl">
                 <AvatarFallbackText></AvatarFallbackText>
                 <AvatarImage
-                  source={{ uri: avatarUrl }}
-                  alt={`user-avatar-${index}`}
+                  source={{
+                    uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM-a8a8K3WFelnsiY6YK5eYRJRrC6VH3VSsA&s",
+                  }}
                 />
+                <AvatarBadge />
               </Avatar>
-            ))}
-          </ScrollView>
+              {userActive.map((avatarUrl, index) => (
+                <Avatar key={index} size="xl" className="mx-1">
+                  <AvatarFallbackText></AvatarFallbackText>
+                  <AvatarImage
+                    source={{ uri: avatarUrl }}
+                    alt={`user-avatar-${index}`}
+                  />
+                </Avatar>
+              ))}
+            </ScrollView>
+          </HStack>
         </HStack>
-      </HStack>
-      <Box className="mx-3 mt-8">
-        <VStack space="xl">
-          {notifications.map((item, index) => (
-            <Pressable key={index}>
-              <HStack>
-                {item.icon ? (
-                  <Box className="mr-4 h-16 w-16 items-center justify-center rounded-full bg-white">
-                    <Avatar key={index} size="lg" className="bg-white">
-                      {item.icon}
-                    </Avatar>
-                  </Box>
-                ) : (
-                  <Avatar key={index} size="lg">
-                    <AvatarFallbackText></AvatarFallbackText>
-                    <AvatarImage
-                      source={{
-                        uri: item.avatar,
-                      }}
-                      alt="avatar"
-                    />
-                  </Avatar>
-                )}
-                <VStack className="ml-2 flex-1" space="xs">
-                  <Text className="text-lg">{item.title}</Text>
-                  <Text className="text-sm text-slate-500" numberOfLines={1}>
-                    {item.description}
-                  </Text>
-                </VStack>
-                <HStack space="sm" className="items-center justify-center">
-                  {item.badge && (
-                    <Box className="h-2 w-2 rounded-full bg-red-500" />
-                  )}
-                  {item.camera && <Icon as={Camera} size="sm" />}
-                  {item.follow && (
-                    <Box className="rounded-full px-2 py-1">
-                      <Text className="text-lg font-bold text-red-600">
-                        + Follow
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Box className="mx-3 mt-8">
+            <VStack space="xl">
+              {notifications.map((item, index) => (
+                <Pressable key={index}>
+                  <HStack>
+                    {item.icon ? (
+                      <Box className="mr-4 h-16 w-16 items-center justify-center rounded-full bg-white">
+                        <Avatar key={index} size="lg" className="bg-white">
+                          {item.icon}
+                        </Avatar>
+                      </Box>
+                    ) : (
+                      <Avatar key={index} size="lg">
+                        <AvatarFallbackText></AvatarFallbackText>
+                        <AvatarImage
+                          source={{
+                            uri: item.avatar,
+                          }}
+                          alt="avatar"
+                        />
+                      </Avatar>
+                    )}
+                    <VStack className="ml-2 flex-1" space="xs">
+                      <Text className="text-lg">{item.title}</Text>
+                      <Text
+                        className="text-sm text-slate-500"
+                        numberOfLines={1}>
+                        {item.description}
                       </Text>
-                    </Box>
-                  )}
-                  {item.chevron && <Icon as={ChevronRight} size="xl" />}
-                </HStack>
-              </HStack>
-            </Pressable>
-          ))}
-        </VStack>
+                    </VStack>
+                    <HStack space="sm" className="items-center justify-center">
+                      {item.badge && (
+                        <Box className="h-2 w-2 rounded-full bg-red-500" />
+                      )}
+                      {item.camera && <Icon as={Camera} size="sm" />}
+                      {item.follow && (
+                        <Box className="rounded-full px-2 py-1">
+                          <Text className="text-lg font-bold text-red-600">
+                            + Follow
+                          </Text>
+                        </Box>
+                      )}
+                      {item.chevron && <Icon as={ChevronRight} size="xl" />}
+                    </HStack>
+                  </HStack>
+                </Pressable>
+              ))}
+            </VStack>
+          </Box>
+          <Text className="mx-3 mt-2 text-xl">Tài khoản được đề xuất</Text>
+          <Box className="mx-3 mt-2">
+            <VStack space="xl">
+              {accountRecommend.map((item, index) => (
+                <Pressable key={index}>
+                  <HStack>
+                    <Avatar key={index} size="lg">
+                      <AvatarFallbackText></AvatarFallbackText>
+                      <AvatarImage
+                        source={{
+                          uri: item.avatar,
+                        }}
+                        alt="avatar"
+                      />
+                    </Avatar>
+
+                    <VStack className="ml-2 flex-1" space="xs">
+                      <Text className="text-lg">{item.title}</Text>
+                      <Text
+                        className="text-sm text-slate-500"
+                        numberOfLines={1}>
+                        {item.followed
+                          ? "Đã follow bạn"
+                          : item.description + " " + item.title}
+                      </Text>
+                    </VStack>
+
+                    <HStack space="sm" className="items-center justify-center">
+                      <Box className="min-w-10 rounded-full bg-red-500 px-2 py-1">
+                        {item.followed ? (
+                          <TouchableOpacity className="">
+                            <Text className="text-lg font-bold text-white">
+                              + Follow lại
+                            </Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity className="">
+                            <Text className="text-lg font-bold text-white">
+                              + Follow
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </Box>
+                    </HStack>
+                  </HStack>
+                </Pressable>
+              ))}
+            </VStack>
+          </Box>
+        </ScrollView>
       </Box>
-    </Box>
+    </GestureHandlerRootView>
   );
 }

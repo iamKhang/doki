@@ -34,12 +34,24 @@ import Constants from "expo-constants";
 import * as VideoThumbnails from "expo-video-thumbnails";
 
 const videoUrls = [
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/video3.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
   "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
   "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/video3.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/video3.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/video3.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
+  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
 ];
 
 export default function ProfilePage() {
@@ -68,7 +80,7 @@ export default function ProfilePage() {
 
   return (
     <GestureHandlerRootView>
-      <ScrollView style={styles.container}>
+      <ScrollView style={{ marginTop: Constants.statusBarHeight }}>
         <VStack space="md" className="pb-20">
           <HStack className="items-center justify-center px-4 py-2">
             <Text className="text-lg font-bold">Người Việt gốc WestS...</Text>
@@ -160,14 +172,16 @@ export default function ProfilePage() {
                 {thumbnail ? (
                   <Image
                     source={{ uri: thumbnail }}
-                    style={styles.thumbnail}
+                    // style={styles.thumbnail}
                     alt="thumbnail"
-                    className="h-full w-full"
+                    className="h-full w-full rounded-lg"
                   />
                 ) : (
                   <Text>Failed to load thumbnail</Text>
                 )}
-                <Text style={styles.viewCount}>229 N</Text>
+                <Text className="absolute bottom-3 left-2 rounded-s p-1 text-xs color-white">
+                  229 N
+                </Text>
               </Box>
             ))}
           </Box>
@@ -176,25 +190,3 @@ export default function ProfilePage() {
     </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "$white",
-  },
-  thumbnail: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 8,
-  },
-  viewCount: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    color: "white",
-    padding: 4,
-    borderRadius: 4,
-    fontSize: 12,
-  },
-});
