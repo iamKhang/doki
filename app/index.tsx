@@ -3,8 +3,9 @@ import {
   VirtualizedList,
   TouchableWithoutFeedback,
   Dimensions,
+  Platform,
 } from "react-native";
-import { Video, ResizeMode } from "expo-av";
+import { Video, ResizeMode, Audio } from "expo-av";
 import { Box } from "@/components/ui/box";
 import {
   Bookmark,
@@ -33,6 +34,7 @@ import {
   ActionsheetItemText,
 } from "@/components/ui/actionsheet";
 import { HStack } from "@/components/ui/hstack";
+import clsx from "clsx";
 
 const { width, height } = Dimensions.get("window");
 
@@ -77,7 +79,10 @@ const VideoItem = React.memo(
           />
 
           {/* Action tab */}
-          <VStack className="absolute bottom-8 right-4 items-center gap-4">
+          <VStack
+            className={clsx("absolute bottom-8 right-4 items-center gap-4", {
+              "bottom-24": Platform.OS === "ios",
+            })}>
             <Avatar size="md" className="mb-8">
               <AvatarFallbackText>Jane Doe</AvatarFallbackText>
               <AvatarImage source={require("@/assets/images/avatar.jpg")} />
@@ -123,7 +128,10 @@ const VideoItem = React.memo(
           </VStack>
 
           {/* Bottom tab */}
-          <VStack className="absolute bottom-8 left-0 right-0 px-4 pr-[72px]">
+          <VStack
+            className={clsx("absolute bottom-8 left-0 right-0 px-4 pr-[72px]", {
+              "bottom-24": Platform.OS === "ios",
+            })}>
             <Text className="text-xl font-semibold text-white drop-shadow-lg">
               Doki toptop
             </Text>
@@ -162,6 +170,7 @@ export default function HomePage() {
             await video.setPositionAsync(0); // Tua video về đầu
           } else {
             // Nếu video trong khung nhìn, phát
+            await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
             await video.playAsync();
           }
         }
@@ -214,7 +223,11 @@ export default function HomePage() {
 
   return (
     <>
-      <Box style={{ flex: 1, position: "relative" }}>
+      <Box
+        style={{
+          flex: 1,
+          position: "relative",
+        }}>
         <VirtualizedList
           data={videos}
           renderItem={renderItem}
@@ -223,7 +236,7 @@ export default function HomePage() {
           showsVerticalScrollIndicator={false}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
-          decelerationRate="normal"
+          decelerationRate="fast"
           snapToInterval={height}
           snapToAlignment="start"
           scrollEventThrottle={16}

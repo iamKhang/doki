@@ -39,7 +39,7 @@ export default function CustomTabBar({
       className={clsx(
         "flex-row gap-1 px-2 py-2",
         isHome ? "bg-black" : "bg-white",
-        { "mb-24": Platform.OS === "ios" },
+        { "pb-6": Platform.OS === "ios" },
       )}
       style={{
         minHeight: 54,
