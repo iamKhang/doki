@@ -24,20 +24,21 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Play className="fixed" />
       <TouchableWithoutFeedback onPress={handleTap}>
-        <Video
-          ref={video}
-          style={styles.video}
-          source={require("/assets/videos/demo_video.mp4")}
-          useNativeControls={false}
-          resizeMode={ResizeMode.CONTAIN} // Equivalent to object-fit: contain
-          isLooping
-          shouldPlay
-          onPlaybackStatusUpdate={(status: AVPlaybackStatus) =>
-            setStatus(status)
-          }
-        />
+        <View>
+          <Video
+            ref={video}
+            style={styles.video}
+            source={require("/assets/videos/demo_video.mp4")}
+            useNativeControls={false}
+            resizeMode={ResizeMode.CONTAIN}
+            isLooping
+            shouldPlay
+            onPlaybackStatusUpdate={(status: AVPlaybackStatus) =>
+              setStatus(status)
+            }
+          />
+        </View>
       </TouchableWithoutFeedback>
     </View>
   );
@@ -53,6 +54,6 @@ const styles = StyleSheet.create({
   video: {
     width: width,
     height: height,
-    backgroundColor: "black", // Ensures black background for letterboxing effect
+    backgroundColor: "black",
   },
 });

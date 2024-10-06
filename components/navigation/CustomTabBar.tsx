@@ -40,7 +40,7 @@ export default function CustomTabBar({
         isHome ? "bg-black" : "bg-white",
       )}
       style={{
-        minHeight: 60,
+        minHeight: 54,
         borderTopWidth: 0.5,
         borderTopColor: "rgb(209, 213, 219)",
       }}>
@@ -95,6 +95,7 @@ export default function CustomTabBar({
               ) : null}
               <Text
                 className={clsx(
+                  "text-xs",
                   isFocused ? (isHome ? "#fff" : "#000") : "#888",
                 )}>
                 {typeof label === "function"
