@@ -13,58 +13,72 @@ import { Pressable } from "@/components/ui/pressable";
 import { VStack } from "@/components/ui/vstack";
 import {
   BookMarked,
-  Feather,
-  FeatherIcon,
   Grid,
   Headphones,
   Heart,
-  Icon,
   Lock,
   Menu,
   Music,
   ShoppingBasket,
   UserRoundPlus,
 } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import {
   GestureHandlerRootView,
   ScrollView,
 } from "react-native-gesture-handler";
 import Constants from "expo-constants";
 import * as VideoThumbnails from "expo-video-thumbnails";
-
-const videoUrls = [
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/5890417728103.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-  "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/Snaptik.app_7383619235999714578.mp4",
-];
+import PostService from "@/services/PostService";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function ProfilePage() {
-  const [thumbnails, setThumbnails] = useState([]);
+  const [thumbnails, setThumbnails] = useState<(string | null)[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageSize = 9;
+
+  // Load initial posts
+  useEffect(() => {
+    const loadInitialPosts = async () => {
+      setLoading(true);
+      const postService = new PostService();
+      const initialPosts = await postService.getPostsByPage(0, pageSize);
+      setPosts(initialPosts);
+      setLoading(false);
+      setPage(1); // Đặt trang tiếp theo là trang 1
+    };
+
+    loadInitialPosts();
+  }, []);
+
+  const loadMorePosts = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    const postService = new PostService();
+    const newPosts = await postService.getPostsByPage(page, pageSize);
+
+    if (newPosts.length > 0) {
+      setPosts((prevPosts) => [...prevPosts, ...newPosts]);
+      setPage(page + 1);
+    }
+
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     const generateThumbnails = async () => {
-      const thumbnailUris = await Promise.all(
-        videoUrls.map(async (videoUrl) => {
+      const newThumbnails = await Promise.all(
+        posts.map(async (post) => {
           try {
-            const { uri } = await VideoThumbnails.getThumbnailAsync(videoUrl, {
-              time: 3000,
-            });
+            const { uri } = await VideoThumbnails.getThumbnailAsync(
+              post.video,
+              {
+                time: 3000,
+              },
+            );
             return uri;
           } catch (e) {
             console.warn(e);
@@ -72,15 +86,28 @@ export default function ProfilePage() {
           }
         }),
       );
-      setThumbnails(thumbnailUris);
+      setThumbnails(newThumbnails);
     };
 
     generateThumbnails();
-  }, []);
+  }, [posts]);
+
+  const handleScroll = ({ nativeEvent }) => {
+    const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+    const isCloseToBottom =
+      layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
+
+    if (isCloseToBottom && !loadingMore) {
+      loadMorePosts();
+    }
+  };
 
   return (
     <GestureHandlerRootView>
-      <ScrollView style={{ marginTop: Constants.statusBarHeight }}>
+      <ScrollView
+        style={{ marginTop: Constants.statusBarHeight }}
+        onScroll={handleScroll}
+        scrollEventThrottle={400}>
         <VStack space="md" className="pb-20">
           <HStack className="items-center justify-center px-4 py-2">
             <Text className="text-lg font-bold">Người Việt gốc WestS...</Text>
@@ -167,24 +194,34 @@ export default function ProfilePage() {
           </HStack>
 
           <Box className="flex-row flex-wrap">
-            {thumbnails.map((thumbnail, index) => (
-              <Box key={index} className="aspect-square w-1/3 p-1">
-                {thumbnail ? (
-                  <Image
-                    source={{ uri: thumbnail }}
-                    // style={styles.thumbnail}
-                    alt="thumbnail"
-                    className="h-full w-full rounded-lg"
-                  />
-                ) : (
-                  <Text>Failed to load thumbnail</Text>
-                )}
-                <Text className="absolute bottom-3 left-2 rounded-s p-1 text-xs color-white">
-                  229 N
-                </Text>
-              </Box>
-            ))}
+            {loading ? (
+              <Center className="flex-1">
+                <Spinner size="small" className="text-slate-500" />
+              </Center>
+            ) : (
+              thumbnails.map((thumbnail, index) => (
+                <Box key={index} className="aspect-square w-1/3 p-1">
+                  {thumbnail ? (
+                    <Image
+                      source={{ uri: thumbnail }}
+                      alt="thumbnail"
+                      className="h-full w-full rounded-lg"
+                    />
+                  ) : (
+                    <Text>Failed to load thumbnail</Text>
+                  )}
+                  <Text className="absolute bottom-3 left-2 rounded-s p-1 text-xs color-white">
+                    {posts[index]?.like_total} Likes
+                  </Text>
+                </Box>
+              ))
+            )}
           </Box>
+          {loadingMore && (
+            <Center className="py-4">
+              <Spinner size="small" className="text-slate-500" />
+            </Center>
+          )}
         </VStack>
       </ScrollView>
     </GestureHandlerRootView>
