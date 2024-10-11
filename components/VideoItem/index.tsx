@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { TouchableWithoutFeedback, Dimensions, Platform } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { Box } from "@/components/ui/box";
@@ -32,13 +32,13 @@ import CommentItem from "@/components/CommentItem";
 
 const { height } = Dimensions.get("window"); // Use the window height for each item
 
-const VideoItem = ({ item }: { item: Post }) => {
-  const videoRef = React.useRef<Video | null>(null);
-  const [hearted, setHearted] = React.useState(false);
-  const [isPlaying, setIsPlaying] = React.useState(true);
-  const [showActionsheet, setShowActionsheet] = React.useState(false);
+const VideoItem = ({ item, isActive }: { item: Post; isActive: boolean }) => {
+  const videoRef = useRef<Video | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false); // Track local play state
+  const [hearted, setHearted] = useState(false);
+  const [showActionsheet, setShowActionsheet] = useState(false);
 
-  const handleTap = useCallback(() => {
+  const handleTap = () => {
     if (videoRef.current) {
       videoRef.current.getStatusAsync().then((status) => {
         if (status.isLoaded && status.isPlaying) {
@@ -50,7 +50,7 @@ const VideoItem = ({ item }: { item: Post }) => {
         }
       });
     }
-  }, []);
+  };
 
   const handleOpenActionsheet = () => {
     setShowActionsheet(true);
@@ -59,6 +59,19 @@ const VideoItem = ({ item }: { item: Post }) => {
   const handleCloseActionsheet = () => {
     setShowActionsheet(false);
   };
+
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isActive) {
+        videoRef.current.playAsync();
+        setIsPlaying(true);
+      } else {
+        videoRef.current.pauseAsync();
+        videoRef.current.setPositionAsync(0);
+        setIsPlaying(false);
+      }
+    }
+  }, [isActive]);
 
   return (
     <>
@@ -74,6 +87,7 @@ const VideoItem = ({ item }: { item: Post }) => {
             source={{ uri: item.video || "" }}
             useNativeControls={false}
             resizeMode={ResizeMode.COVER}
+            shouldPlay
             isLooping
           />
 

@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useState } from "react";
 import { VirtualizedList, Dimensions } from "react-native";
 import { Video, Audio } from "expo-av";
 import { Box } from "@/components/ui/box";
@@ -7,7 +7,7 @@ import VideoItem from "@/components/VideoItem";
 const { height } = Dimensions.get("window");
 
 // Sample posts array with video URLs
-const posts: Post[] = [
+const samplePosts: Post[] = [
   {
     post_id: "1",
     user_id: "101",
@@ -31,22 +31,13 @@ const posts: Post[] = [
 
 export default function HomePage() {
   const videoRefs = useRef<Video[]>([]);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [posts, setPosts] = useState<Post[]>(samplePosts);
 
-  // Handle visible items and play/pause videos
   const onViewableItemsChanged = useCallback(
-    async ({ viewableItems }: { viewableItems: any[] }) => {
-      const visibleIndexes = viewableItems.map((item) => item.index);
-      for (let i = 0; i < videoRefs.current.length; i++) {
-        const video = videoRefs.current[i];
-        if (video) {
-          if (!visibleIndexes.includes(i)) {
-            await video.pauseAsync();
-            await video.setPositionAsync(0); // Reset to the beginning
-          } else {
-            await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-            await video.playAsync();
-          }
-        }
+    ({ viewableItems }: { viewableItems: any[] }) => {
+      if (viewableItems && viewableItems.length > 0) {
+        setActiveIndex(viewableItems[0].index); // Set the active item based on the first viewable item
       }
     },
     [],
@@ -60,34 +51,38 @@ export default function HomePage() {
   const getItemCount = (_data: any) => posts.length;
 
   // Render each video item
-  const renderItem = useCallback(({ item }: { item: Post }) => {
-    return <VideoItem item={item} />;
-  }, []);
+  const renderItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => {
+      const isActive = index === activeIndex; // Determine if the current item is active
+      return <VideoItem item={item} isActive={isActive} />;
+    },
+    [activeIndex],
+  );
 
   return (
-    <Box style={{ flex: 1, position: "relative" }}>
+    <Box style={{ flex: 1 }}>
       <VirtualizedList
-        data={posts} // List of posts
-        renderItem={renderItem} // Render each item
+        data={posts}
+        renderItem={renderItem}
         keyExtractor={(item) => item.post_id}
-        pagingEnabled // Enable paging for full-screen items
-        showsVerticalScrollIndicator={false} // Hide scroll indicator
-        onViewableItemsChanged={onViewableItemsChanged} // Handle viewable item changes
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
+        onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         decelerationRate="fast"
-        snapToInterval={height} // Snap each item to the height of the screen
+        snapToInterval={height}
         snapToAlignment="start"
         scrollEventThrottle={16}
-        maxToRenderPerBatch={1} // Render one item at a time
-        initialNumToRender={1} // Initially render only one item
+        maxToRenderPerBatch={1}
+        initialNumToRender={1}
         getItem={getItem}
         getItemCount={getItemCount}
         getItemLayout={(_, index) => ({
-          length: height, // Each item has the full height of the screen
+          length: height,
           offset: height * index,
           index,
         })}
-        removeClippedSubviews // Remove views outside of the window to improve memory usage
+        removeClippedSubviews
       />
     </Box>
   );
