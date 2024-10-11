@@ -48,7 +48,7 @@ export default function ProfilePage() {
       const initialPosts = await postService.getPostsByPage(0, pageSize);
       setPosts(initialPosts);
       setLoading(false);
-      setPage(1); // Đặt trang tiếp theo là trang 1
+      setPage(1);
     };
 
     loadInitialPosts();
