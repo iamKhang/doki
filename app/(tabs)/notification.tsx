@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+import PostService from "@/services/PostService";
 import Constants from "expo-constants";
 
 import {
@@ -20,6 +21,7 @@ import {
   ShoppingBag,
   User,
 } from "lucide-react-native";
+import { useEffect } from "react";
 import { ScrollView } from "react-native";
 import {
   GestureHandlerRootView,
@@ -132,6 +134,10 @@ const userActive = [
 ];
 
 export default function NotificationsPage() {
+  // useEffect(() => {
+  //   const postService = new PostService();
+  //   postService.getAll().then((data) => console.log(data));
+  // },[]);
   return (
     <GestureHandlerRootView>
       <Box className="flex-1" style={{ marginTop: Constants.statusBarHeight }}>

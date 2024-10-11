@@ -48,4 +48,16 @@ export default class PostService implements QueryService {
     const { error } = await supabase.from("posts").delete().eq("post_id", id);
     if (error) throw error;
   }
+
+  // Phương thức mới để lấy các bài viết theo trang
+  async getPostsByPage<Post>(page: number, pageSize: number): Promise<Post[]> {
+    const { data, error } = await supabase
+      .from("posts")
+      .select("*")
+      .order("created_at", { ascending: false }) // Sắp xếp theo thời gian tạo
+      .range(page * pageSize, (page + 1) * pageSize - 1); // Tính toán offset dựa trên trang và kích thước trang
+
+    if (error) throw error;
+    return data as Post[];
+  }
 }
