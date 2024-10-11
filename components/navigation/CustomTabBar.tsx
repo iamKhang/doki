@@ -1,4 +1,5 @@
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+
 import { Button } from "../ui/button";
 import { Plus } from "lucide-react-native";
 import { Fragment } from "react";
@@ -7,6 +8,7 @@ import { Pressable } from "../ui/pressable";
 import { Text } from "../ui/text";
 import clsx from "clsx";
 import { Platform } from "react-native";
+import { Link } from "expo-router";
 
 export default function CustomTabBar({
   state,
@@ -22,16 +24,18 @@ export default function CustomTabBar({
 
   const CenterButton = (
     <Box className="flex items-center justify-start px-4">
-      <Button
-        key="center"
-        className={clsx(
-          "rounded-lg bg-white",
-          isHome ? "bg-white" : "bg-black",
-        )}
-        size="sm"
-        style={{ marginTop: 4 }}>
-        <Plus strokeWidth={2} color={isHome ? "#000" : "#fff"} />
-      </Button>
+      <Link href="/post/new-post" asChild>
+        <Button
+          key="center"
+          className={clsx(
+            "rounded-lg bg-white active:opacity-80",
+            isHome ? "bg-white" : "bg-black",
+          )}
+          size="sm"
+          style={{ marginTop: 4 }}>
+          <Plus strokeWidth={2} color={isHome ? "#000" : "#fff"} />
+        </Button>
+      </Link>
     </Box>
   );
   return (
