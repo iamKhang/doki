@@ -11,7 +11,8 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "postinstall": "patch-package",
-    "prepare": "husky"
+    "prepare": "husky",
+    "update_types": "supabase gen types typescript --project-id exthbgzjojqiyppnqllw > configs/supabase/database.types.ts"
   },
   "jest": {
     "preset": "jest-expo"
@@ -96,7 +97,7 @@
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.6",
     "react-test-renderer": "18.2.0",
-    "supabase": "^1.200.3",
+    "supabase": "^1.204.3",
     "typescript": "~5.3.3"
   },
   "private": true

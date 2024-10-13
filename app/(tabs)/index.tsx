@@ -1,70 +1,97 @@
-import React, { useRef, useCallback, useState } from "react";
-import { VirtualizedList, Dimensions } from "react-native";
-import { Video, Audio } from "expo-av";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { FlatList, Dimensions, ActivityIndicator } from "react-native";
 import { Box } from "@/components/ui/box";
 import VideoItem from "@/components/VideoItem";
+import PostService from "@/services/PostService";
 
 const { height } = Dimensions.get("window");
 
-// Sample posts array with video URLs
-const samplePosts: Post[] = [
-  {
-    post_id: "1",
-    user_id: "101",
-    title: "Video 1",
-    video:
-      "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/sample_video_1.mp4",
-    like_total: 100,
-    view_total: 1000,
-  },
-  {
-    post_id: "2",
-    user_id: "102",
-    title: "Video 2",
-    video:
-      "https://exthbgzjojqiyppnqllw.supabase.co/storage/v1/object/public/STATIC_BUCKET/videos/sample_video_2.mp4",
-    like_total: 200,
-    view_total: 1500,
-  },
-  // Add more posts here
-];
-
 export default function HomePage() {
-  const videoRefs = useRef<Video[]>([]);
-  const [activeIndex, setActiveIndex] = useState<number>(0);
-  const [posts, setPosts] = useState<Post[]>(samplePosts);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
 
-  const onViewableItemsChanged = useCallback(
+  const fetchPosts = useCallback(async () => {
+    if (isLoading || !hasMore) return;
+
+    setIsLoading(true);
+    try {
+      const postService = new PostService();
+      const newPosts = await postService.getRandomPosts<Post>(
+        5,
+        posts.map((post) => post.post_id),
+      );
+      if (newPosts.length === 0) {
+        setHasMore(false);
+      } else {
+        setPosts((prevPosts) => {
+          const uniquePosts = newPosts.filter(
+            (newPost) =>
+              !prevPosts.some((post) => post.post_id === newPost.post_id),
+          );
+          return [...prevPosts, ...uniquePosts];
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading, hasMore, posts]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: any[] }) => {
       if (viewableItems && viewableItems.length > 0) {
-        setActiveIndex(viewableItems[0].index); // Set the active item based on the first viewable item
+        const firstViewable = viewableItems[0].item;
+        if (firstViewable.post_id !== activeId) {
+          setActiveId(firstViewable.post_id);
+        }
+
+        if (viewableItems[0].index >= posts.length - 3) {
+          fetchPosts();
+        }
       }
     },
-    [],
-  );
+  ).current;
 
   const viewabilityConfig = {
-    itemVisiblePercentThreshold: 80, // At least 80% of the item should be visible to be considered "viewable"
+    itemVisiblePercentThreshold: 80,
   };
 
-  const getItem = (_data: any, index: number) => posts[index];
-  const getItemCount = (_data: any) => posts.length;
-
-  // Render each video item
   const renderItem = useCallback(
-    ({ item, index }: { item: any; index: number }) => {
-      const isActive = index === activeIndex; // Determine if the current item is active
+    ({ item }: { item: Post }) => {
+      const isActive = item.post_id === activeId;
       return <VideoItem item={item} isActive={isActive} />;
     },
-    [activeIndex],
+    [activeId],
   );
+
+  const ListFooterComponent = () => {
+    if (!isLoading) return null;
+    return (
+      <Box style={{ padding: 16, alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </Box>
+    );
+  };
 
   return (
     <Box style={{ flex: 1 }}>
-      <VirtualizedList
+      <FlatList
         data={posts}
         renderItem={renderItem}
-        keyExtractor={(item) => item.post_id}
+        keyExtractor={(item) => item.post_id.toString()}
         pagingEnabled
         showsVerticalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
@@ -75,14 +102,15 @@ export default function HomePage() {
         scrollEventThrottle={16}
         maxToRenderPerBatch={1}
         initialNumToRender={1}
-        getItem={getItem}
-        getItemCount={getItemCount}
         getItemLayout={(_, index) => ({
           length: height,
           offset: height * index,
           index,
         })}
         removeClippedSubviews
+        ListFooterComponent={isLoading ? <ActivityIndicator /> : null}
+        windowSize={3}
+        updateCellsBatchingPeriod={100}
       />
     </Box>
   );

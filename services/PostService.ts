@@ -60,4 +60,17 @@ export default class PostService implements QueryService {
     if (error) throw error;
     return data as Post[];
   }
+
+  async getRandomPosts<Post>(
+    limit: number,
+    excludeIds: string[],
+  ): Promise<Post[]> {
+    const { data, error } = await supabase.rpc("get_random_posts", {
+      exclude_ids: excludeIds, // Truyền mảng post_id cần loại bỏ dưới dạng UUID[]
+      limit_size: limit, // Giới hạn số lượng bài viết
+    });
+
+    if (error) throw error;
+    return data as Post[];
+  }
 }

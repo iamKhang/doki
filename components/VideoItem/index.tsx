@@ -30,47 +30,75 @@ import {
 } from "@/components/ui/actionsheet";
 import CommentItem from "@/components/CommentItem";
 
-const { height } = Dimensions.get("window"); // Use the window height for each item
+const { height } = Dimensions.get("window");
 
-const VideoItem = ({ item, isActive }: { item: Post; isActive: boolean }) => {
+interface VideoItemProps {
+  item: Post;
+  isActive: boolean;
+}
+
+const VideoItem = ({ item, isActive }: VideoItemProps) => {
   const videoRef = useRef<Video | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false); // Track local play state
+  const isPlayingRef = useRef(false);
   const [hearted, setHearted] = useState(false);
   const [showActionsheet, setShowActionsheet] = useState(false);
+  const [shouldShowPlayIcon, setShouldShowPlayIcon] = useState(false);
 
-  const handleTap = () => {
+  // Static numbers for counts
+  const staticLikeTotal = 1234;
+  const staticCommentTotal = 56;
+  const staticBookmarkTotal = 78;
+  const staticShareTotal = 90;
+
+  const handleTap = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.getStatusAsync().then((status) => {
         if (status.isLoaded && status.isPlaying) {
           videoRef.current?.pauseAsync();
-          setIsPlaying(false);
-        } else {
+          setShouldShowPlayIcon(true);
+        } else if (status.isLoaded) {
           videoRef.current?.playAsync();
-          setIsPlaying(true);
+          setShouldShowPlayIcon(false);
         }
       });
     }
-  };
+  }, []);
 
-  const handleOpenActionsheet = () => {
+  const handleOpenActionsheet = useCallback(() => {
     setShowActionsheet(true);
-  };
+  }, []);
 
-  const handleCloseActionsheet = () => {
+  const handleCloseActionsheet = useCallback(() => {
     setShowActionsheet(false);
-  };
+  }, []);
 
+  // Control video playback based on isActive
   useEffect(() => {
-    if (videoRef.current) {
-      if (isActive) {
-        videoRef.current.playAsync();
-        setIsPlaying(true);
-      } else {
-        videoRef.current.pauseAsync();
-        videoRef.current.setPositionAsync(0);
-        setIsPlaying(false);
+    let isMounted = true;
+
+    const managePlayback = async () => {
+      if (videoRef.current) {
+        const status = await videoRef.current.getStatusAsync();
+        if (isActive) {
+          if (status.isLoaded && !status.isPlaying) {
+            await videoRef.current.playAsync();
+            if (isMounted) setShouldShowPlayIcon(false);
+          }
+        } else {
+          if (status.isLoaded && status.isPlaying) {
+            await videoRef.current.pauseAsync();
+            await videoRef.current.setPositionAsync(0);
+            if (isMounted) setShouldShowPlayIcon(true);
+          }
+        }
       }
-    }
+    };
+
+    managePlayback();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isActive]);
 
   return (
@@ -87,17 +115,20 @@ const VideoItem = ({ item, isActive }: { item: Post; isActive: boolean }) => {
             source={{ uri: item.video || "" }}
             useNativeControls={false}
             resizeMode={ResizeMode.COVER}
-            shouldPlay
+            shouldPlay={false} // Controlled via isActive
             isLooping
+            onPlaybackStatusUpdate={(status) => {
+              if (status.isLoaded) {
+                isPlayingRef.current = status.isPlaying;
+              }
+            }}
           />
 
-          {!isPlaying && (
-            <Center
-              key={"pause icon"}
-              className="absolute left-1/2 top-1/2 -ml-[30px] -mt-[30px] transform opacity-50 transition-transform">
+          {shouldShowPlayIcon && (
+            <Center className="absolute left-1/2 top-1/2 -ml-[30px] -mt-[30px] opacity-50">
               <Play
-                color={"#fff"}
-                fill={"#fff"}
+                color="#fff"
+                fill="#fff"
                 className="border-white/50 bg-white/30 backdrop-blur-lg"
                 size={60}
               />
@@ -115,7 +146,8 @@ const VideoItem = ({ item, isActive }: { item: Post; isActive: boolean }) => {
               <AvatarBadge />
             </Avatar>
 
-            <TouchableWithoutFeedback onPress={() => setHearted(!hearted)}>
+            <TouchableWithoutFeedback
+              onPress={() => setHearted((prev) => !prev)}>
               <VStack style={{ alignItems: "center" }}>
                 <Heart
                   fill={hearted ? "red" : "white"}
@@ -123,31 +155,34 @@ const VideoItem = ({ item, isActive }: { item: Post; isActive: boolean }) => {
                   size={35}
                 />
                 <Text className="text-white">
-                  {formatNumber(item.like_total || 0)}
+                  {formatNumber(staticLikeTotal)}
                 </Text>
               </VStack>
             </TouchableWithoutFeedback>
+
             <TouchableWithoutFeedback onPress={handleOpenActionsheet}>
               <VStack style={{ alignItems: "center" }}>
                 <MessageCircle fill="white" color="white" size={35} />
                 <Text className="text-white">
-                  {formatNumber(Math.ceil(Math.random() * 10000))}
+                  {formatNumber(staticCommentTotal)}
                 </Text>
               </VStack>
             </TouchableWithoutFeedback>
+
             <TouchableWithoutFeedback>
               <VStack style={{ alignItems: "center" }}>
                 <Bookmark fill="white" color="white" size={35} />
                 <Text className="text-white">
-                  {formatNumber(Math.ceil(Math.random() * 1000))}
+                  {formatNumber(staticBookmarkTotal)}
                 </Text>
               </VStack>
             </TouchableWithoutFeedback>
+
             <TouchableWithoutFeedback>
               <VStack style={{ alignItems: "center" }}>
                 <Share2 fill="white" color="white" size={35} />
                 <Text className="text-white">
-                  {formatNumber(Math.ceil(Math.random() * 100))}
+                  {formatNumber(staticShareTotal)}
                 </Text>
               </VStack>
             </TouchableWithoutFeedback>
@@ -159,13 +194,10 @@ const VideoItem = ({ item, isActive }: { item: Post; isActive: boolean }) => {
               "bottom-24": Platform.OS === "ios",
             })}>
             <Text className="text-xl font-semibold text-white drop-shadow-lg">
-              {item.title}
+              @username
             </Text>
             <Text className="text-sm font-semibold text-white drop-shadow-lg">
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Est optio
-              deleniti magni, dolore libero odio iusto doloremque a eveniet,
-              veritatis omnis repellendus aliquid nostrum, vero unde earum! Cum,
-              id. Explicabo.
+              {item.title || "No description available."}
             </Text>
           </VStack>
         </Box>
@@ -180,20 +212,25 @@ const VideoItem = ({ item, isActive }: { item: Post; isActive: boolean }) => {
         <ActionsheetContent>
           <ActionsheetDragIndicatorWrapper>
             <ActionsheetItemText className="text-lg font-semibold">
-              {Math.ceil(Math.random() * 100)} Bình luận
+              {formatNumber(staticCommentTotal)} Bình luận
             </ActionsheetItemText>
           </ActionsheetDragIndicatorWrapper>
+          {/* Example static comments */}
           <ActionsheetItem className="mb-4">
             <CommentItem user_name="Thanh Cảnh" text="Amazing" />
           </ActionsheetItem>
           <ActionsheetItem className="mb-4">
             <CommentItem user_name="Hoàng Khang" text="Tuyệt vời, quá" />
           </ActionsheetItem>
-          {/* Add more comment items as needed */}
         </ActionsheetContent>
       </Actionsheet>
     </>
   );
 };
 
-export default VideoItem;
+export default React.memo(VideoItem, (prevProps, nextProps) => {
+  return (
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.item.post_id === nextProps.item.post_id
+  );
+});
