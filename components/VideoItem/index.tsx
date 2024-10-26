@@ -29,6 +29,7 @@ import {
   ActionsheetItemText,
 } from "@/components/ui/actionsheet";
 import CommentItem from "@/components/CommentItem";
+import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 
 const { height } = Dimensions.get("window");
 
@@ -112,6 +113,19 @@ const VideoItem = ({ item, isActive }: VideoItemProps) => {
     };
   }, [isActive, isVideoLoaded]);
 
+  // Use useFocusEffect to pause the video when the screen loses focus
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // The screen is unfocused
+        if (videoRef.current) {
+          videoRef.current.pauseAsync();
+          setShouldShowPlayIcon(true);
+        }
+      };
+    }, [isVideoLoaded]),
+  );
+
   const handleLoad = useCallback(() => {
     setIsVideoLoaded(true);
     console.log("Video is fully loaded");
@@ -131,11 +145,7 @@ const VideoItem = ({ item, isActive }: VideoItemProps) => {
           <Video
             ref={videoRef}
             onLoad={handleLoad} // Set video as loaded when ready
-            onPlaybackStatusUpdate={(status) => {
-              if (status.isLoaded) {
-                isPlayingRef.current = status.isPlaying;
-              }
-            }}
+            onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
             style={{ width: "100%", height: "100%", backgroundColor: "black" }}
             source={{ uri: item.video || "" }}
             useNativeControls={false}
