@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, Dimensions, ActivityIndicator } from "react-native";
 import { Box } from "@/components/ui/box";
 import VideoItem from "@/components/VideoItem";
@@ -13,10 +7,13 @@ import PostService from "@/services/PostService";
 const { height } = Dimensions.get("window");
 
 export default function HomePage() {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
+
+  // Ref to store post IDs to avoid triggering multiple fetches based on `posts` dependency
+  const postIdsRef = useRef<string[]>([]);
 
   const fetchPosts = useCallback(async () => {
     if (isLoading || !hasMore) return;
@@ -26,65 +23,64 @@ export default function HomePage() {
       const postService = new PostService();
       const newPosts = await postService.getRandomPosts<Post>(
         5,
-        posts.map((post) => post.post_id),
+        postIdsRef.current,
       );
-      if (newPosts.length === 0) {
+
+      const uniquePosts = newPosts.filter(
+        (newPost) => !postIdsRef.current.includes(newPost.post_id),
+      );
+
+      if (uniquePosts.length === 0) {
+        // No more unique posts to fetch
         setHasMore(false);
       } else {
         setPosts((prevPosts) => {
-          const uniquePosts = newPosts.filter(
-            (newPost) =>
-              !prevPosts.some((post) => post.post_id === newPost.post_id),
-          );
-          return [...prevPosts, ...uniquePosts];
+          const updatedPosts = [...prevPosts, ...uniquePosts];
+          console.log("Updated posts length:", updatedPosts.length);
+          return updatedPosts;
         });
+
+        // Update the ref with new post IDs
+        postIdsRef.current = [
+          ...postIdsRef.current,
+          ...uniquePosts.map((post) => post.post_id),
+        ];
       }
     } catch (error) {
       console.error("Error fetching posts:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, hasMore, posts]);
+  }, [isLoading, hasMore]);
 
+  // Fetch initial posts on component mount
   useEffect(() => {
     fetchPosts();
-  }, [fetchPosts]);
+  }, []);
 
-  const onViewableItemsChanged = useRef(
+  const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: any[] }) => {
       if (viewableItems && viewableItems.length > 0) {
-        const firstViewable = viewableItems[0].item;
-        if (firstViewable.post_id !== activeId) {
-          setActiveId(firstViewable.post_id);
-        }
-
-        if (viewableItems[0].index >= posts.length - 3) {
-          fetchPosts();
+        const firstViewableIndex = viewableItems[0].index;
+        if (firstViewableIndex !== activeIndex) {
+          setActiveIndex(firstViewableIndex);
         }
       }
     },
-  ).current;
+    [activeIndex],
+  );
 
   const viewabilityConfig = {
     itemVisiblePercentThreshold: 80,
   };
 
   const renderItem = useCallback(
-    ({ item }: { item: Post }) => {
-      const isActive = item.post_id === activeId;
+    ({ item, index }: { item: Post; index: number }) => {
+      const isActive = index === activeIndex;
       return <VideoItem item={item} isActive={isActive} />;
     },
-    [activeId],
+    [activeIndex],
   );
-
-  const ListFooterComponent = () => {
-    if (!isLoading) return null;
-    return (
-      <Box style={{ padding: 16, alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </Box>
-    );
-  };
 
   return (
     <Box style={{ flex: 1 }}>
@@ -92,7 +88,6 @@ export default function HomePage() {
         data={posts}
         renderItem={renderItem}
         keyExtractor={(item) => item.post_id.toString()}
-        pagingEnabled
         showsVerticalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
@@ -100,8 +95,9 @@ export default function HomePage() {
         snapToInterval={height}
         snapToAlignment="start"
         scrollEventThrottle={16}
-        maxToRenderPerBatch={1}
-        initialNumToRender={1}
+        maxToRenderPerBatch={3}
+        initialNumToRender={3}
+        windowSize={1} // Only render 1 screen height of items
         getItemLayout={(_, index) => ({
           length: height,
           offset: height * index,
@@ -109,8 +105,9 @@ export default function HomePage() {
         })}
         removeClippedSubviews
         ListFooterComponent={isLoading ? <ActivityIndicator /> : null}
-        windowSize={3}
         updateCellsBatchingPeriod={100}
+        onEndReached={fetchPosts}
+        onEndReachedThreshold={0.5} // Trigger when user is 50% from the bottom
       />
     </Box>
   );

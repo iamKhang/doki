@@ -43,6 +43,7 @@ const VideoItem = ({ item, isActive }: VideoItemProps) => {
   const [hearted, setHearted] = useState(false);
   const [showActionsheet, setShowActionsheet] = useState(false);
   const [shouldShowPlayIcon, setShouldShowPlayIcon] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
 
   // Static numbers for counts
   const staticLikeTotal = 1234;
@@ -72,24 +73,34 @@ const VideoItem = ({ item, isActive }: VideoItemProps) => {
     setShowActionsheet(false);
   }, []);
 
-  // Control video playback based on isActive
   useEffect(() => {
     let isMounted = true;
 
     const managePlayback = async () => {
-      if (videoRef.current) {
-        const status = await videoRef.current.getStatusAsync();
-        if (isActive) {
-          if (status.isLoaded && !status.isPlaying) {
-            await videoRef.current.playAsync();
-            if (isMounted) setShouldShowPlayIcon(false);
+      // Ensure videoRef.current is still valid when calling async functions
+      if (videoRef.current && isVideoLoaded && isMounted) {
+        try {
+          const status = await videoRef.current.getStatusAsync();
+
+          // Only control playback if the video is loaded and active
+          if (status.isLoaded) {
+            if (isActive && !status.isPlaying) {
+              if (videoRef.current) {
+                // Double-check videoRef.current is not null
+                await videoRef.current.playAsync();
+                if (isMounted) setShouldShowPlayIcon(false);
+              }
+            } else if (!isActive && status.isPlaying) {
+              if (videoRef.current) {
+                // Double-check videoRef.current is not null
+                await videoRef.current.pauseAsync();
+                await videoRef.current.setPositionAsync(0);
+                if (isMounted) setShouldShowPlayIcon(true);
+              }
+            }
           }
-        } else {
-          if (status.isLoaded && status.isPlaying) {
-            await videoRef.current.pauseAsync();
-            await videoRef.current.setPositionAsync(0);
-            if (isMounted) setShouldShowPlayIcon(true);
-          }
+        } catch (error) {
+          console.error("Error managing playback:", error);
         }
       }
     };
@@ -99,7 +110,19 @@ const VideoItem = ({ item, isActive }: VideoItemProps) => {
     return () => {
       isMounted = false;
     };
-  }, [isActive]);
+  }, [isActive, isVideoLoaded]);
+
+  const handleLoad = useCallback(() => {
+    setIsVideoLoaded(true);
+    console.log("Video is fully loaded");
+  }, []);
+
+  const handlePlaybackStatusUpdate = (status: any) => {
+    // Handle playback updates here and manage play/pause when fully loaded
+    if (status.isLoaded) {
+      isPlayingRef.current = status.isPlaying;
+    }
+  };
 
   return (
     <>
@@ -107,21 +130,18 @@ const VideoItem = ({ item, isActive }: VideoItemProps) => {
         <Box style={{ width: "100%", height }} className="relative">
           <Video
             ref={videoRef}
-            style={{
-              width: "100%",
-              height: "100%",
-              backgroundColor: "black",
-            }}
-            source={{ uri: item.video || "" }}
-            useNativeControls={false}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay={false} // Controlled via isActive
-            isLooping
+            onLoad={handleLoad} // Set video as loaded when ready
             onPlaybackStatusUpdate={(status) => {
               if (status.isLoaded) {
                 isPlayingRef.current = status.isPlaying;
               }
             }}
+            style={{ width: "100%", height: "100%", backgroundColor: "black" }}
+            source={{ uri: item.video || "" }}
+            useNativeControls={false}
+            resizeMode={ResizeMode.COVER}
+            shouldPlay={false} // Controlled via isActive
+            isLooping
           />
 
           {shouldShowPlayIcon && (
