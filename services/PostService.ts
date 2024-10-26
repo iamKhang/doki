@@ -1,14 +1,11 @@
 import supabase from "@/configs/supabase/supabase";
 
-interface QueryService {
-  getOne: <T>(id: string) => Promise<T>;
-  getAll: <T>() => Promise<T[]>;
-  create: <T>(data: T) => Promise<T>;
-  update: <T>(id: string, data: T) => Promise<T>;
-  delete: (id: string) => Promise<void>;
+interface IPostService extends QueryService {
+  getPostsByPage<Post>(page: number, pageSize: number): Promise<Post[]>;
+  getRandomPosts<Post>(limit: number, excludeIds: string[]): Promise<Post[]>;
+  search: (query: string) => Promise<any>;
 }
-
-export default class PostService implements QueryService {
+export default class PostService implements IPostService {
   async getOne<Post>(id: string): Promise<Post> {
     const { data, error } = await supabase
       .from("posts")
@@ -69,6 +66,18 @@ export default class PostService implements QueryService {
       exclude_ids: excludeIds, // Truyền mảng post_id cần loại bỏ dưới dạng UUID[]
       limit_size: limit, // Giới hạn số lượng bài viết
     });
+
+    if (error) throw error;
+    return data as Post[];
+  }
+
+  async search(query: string): Promise<Post[]> {
+    const { data, error } = await supabase
+      .from("posts")
+      .select("*")
+      .textSearch("title", query, { type: "websearch" })
+      .limit(10)
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     return data as Post[];
