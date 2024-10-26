@@ -10,7 +10,6 @@ export default function RootLayout() {
       screenOptions={{
         headerShown: false,
         freezeOnBlur: true,
-        unmountOnBlur: true,
         header: () => {
           return <Box></Box>;
         },
