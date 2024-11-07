@@ -1,11 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { TouchableWithoutFeedback, Dimensions, Platform } from "react-native";
+import {
+  TouchableWithoutFeedback,
+  Dimensions,
+  Platform,
+  ScrollView,
+} from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { Box } from "@/components/ui/box";
 import {
   Bookmark,
   ChevronLeft,
   Heart,
+  Loader,
+  Loader2,
   MessageCircle,
   MoveLeft,
   Play,
@@ -34,6 +41,9 @@ import {
 import CommentItem from "@/components/CommentItem";
 import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 import { Button, ButtonIcon, ButtonText } from "../ui/button";
+import CommentService, { ExtendedComment } from "@/services/CommentService";
+import UserService from "@/services/UserService";
+import { HStack } from "../ui/hstack";
 
 const { height } = Dimensions.get("window");
 
@@ -46,10 +56,13 @@ interface VideoItemProps {
 const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   const videoRef = useRef<Video | null>(null);
   const isPlayingRef = useRef(false);
+  const [comments, setComments] = useState<ExtendedComment[] | null>(null);
+  const [owner, setOwner] = useState<User | null>(null);
   const [hearted, setHearted] = useState(false);
   const [showActionsheet, setShowActionsheet] = useState(false);
   const [shouldShowPlayIcon, setShouldShowPlayIcon] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [commentLoading, setCommentLoading] = useState(false);
 
   // Static numbers for counts
   const staticLikeTotal = 1234;
@@ -135,6 +148,44 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
     setIsVideoLoaded(true);
   }, []);
 
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        setCommentLoading(true);
+        const commentService = new CommentService();
+        const comments = await commentService.getByPostId<ExtendedComment>(
+          item.post_id,
+        );
+        setComments(comments);
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+      } finally {
+        setCommentLoading(false);
+      }
+    };
+
+    if (showActionsheet && comments === null) {
+      fetchComments();
+    }
+  }, [showActionsheet]);
+
+  useEffect(() => {
+    const fetchOwner = async () => {
+      try {
+        // Fetch owner data
+        const userService = new UserService();
+        const owner = await userService.getOne<User>(item.user_id);
+        setOwner(owner);
+      } catch (error) {
+        console.error("Error fetching owner:", error);
+      }
+    };
+
+    if (owner === null) {
+      fetchOwner();
+    }
+  }, []);
+
   const handlePlaybackStatusUpdate = (status: any) => {
     // Handle playback updates here and manage play/pause when fully loaded
     if (status.isLoaded) {
@@ -189,7 +240,11 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
             })}>
             <Avatar size="md" className="mb-8">
               <AvatarFallbackText>{item.user_id}</AvatarFallbackText>
-              <AvatarImage source={require("@/assets/images/avatar.jpg")} />
+              <AvatarImage
+                source={
+                  owner?.avatar_url || require("@/assets/images/avatar.jpg")
+                }
+              />
               <AvatarBadge />
             </Avatar>
 
@@ -240,9 +295,16 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
             className={clsx("absolute bottom-8 left-0 right-0 px-4 pr-[72px]", {
               "bottom-24": Platform.OS === "ios",
             })}>
-            <Text className="text-xl font-semibold text-white drop-shadow-lg">
-              @username
-            </Text>
+            <HStack className="items-center gap-2">
+              <Text className="text-xl font-semibold text-white drop-shadow-lg">
+                {owner?.first_name + " " + owner?.last_name || "Unknown"}
+              </Text>
+              {owner?.username && (
+                <Text className="text-xs font-semibold text-white drop-shadow-lg">
+                  (@{owner.username})
+                </Text>
+              )}
+            </HStack>
             <Text className="text-sm font-semibold text-white drop-shadow-lg">
               {item.title || "No description available."}
             </Text>
@@ -263,12 +325,25 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
             </ActionsheetItemText>
           </ActionsheetDragIndicatorWrapper>
           {/* Example static comments */}
-          <ActionsheetItem className="mb-4">
-            <CommentItem user_name="Thanh Cảnh" text="Amazing" />
-          </ActionsheetItem>
-          <ActionsheetItem className="mb-4">
-            <CommentItem user_name="Hoàng Khang" text="Tuyệt vời, quá" />
-          </ActionsheetItem>
+          {commentLoading ? (
+            <Center>
+              <Loader2 size={30} color="#000" />
+            </Center>
+          ) : (
+            <ScrollView>
+              {comments?.map((comment) => (
+                <ActionsheetItem key={comment.comment_id} className="mb-4">
+                  <CommentItem
+                    user_name={
+                      comment.user.first_name + " " + comment.user.last_name
+                    }
+                    text={comment.content}
+                    user_avatar={comment.user.avatar_url}
+                  />
+                </ActionsheetItem>
+              ))}
+            </ScrollView>
+          )}
         </ActionsheetContent>
       </Actionsheet>
     </>

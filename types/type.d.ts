@@ -1,7 +1,7 @@
 declare global {
   type UUID = string;
 
-  interface Comment {
+  interface PostComment {
     comment_id: UUID;
     post_id: UUID;
     user_id: UUID;
