@@ -122,6 +122,7 @@ export type Database = {
           user_id: string
           video: string | null
           view_total: number | null
+          thumbnail_url: string | null
         }
         Insert: {
           created_at?: string | null
@@ -144,6 +145,7 @@ export type Database = {
           user_id?: string
           video?: string | null
           view_total?: number | null
+          thumbnail_url?: string | null
         }
         Relationships: [
           {
