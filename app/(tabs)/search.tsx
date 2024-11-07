@@ -205,7 +205,13 @@ export default function SearchScreen() {
           }}>
           <ModalContent className="bg-black p-0">
             <ModalBody className="p-0">
-              <VideoItem item={previewVideo.item} isActive={true} />
+              <VideoItem
+                item={previewVideo.item}
+                isActive={true}
+                onClosed={() =>
+                  setPreviewVideo((prev) => ({ ...prev, show: false }))
+                }
+              />
             </ModalBody>
           </ModalContent>
         </Modal>

@@ -29,6 +29,7 @@ declare global {
     updated_at?: string;
     like_total?: number;
     view_total?: number;
+    thumbnail_url?: string;
   }
 
   interface PostsTopics {

@@ -4,10 +4,13 @@ import { Video, ResizeMode } from "expo-av";
 import { Box } from "@/components/ui/box";
 import {
   Bookmark,
+  ChevronLeft,
   Heart,
   MessageCircle,
+  MoveLeft,
   Play,
   Share2,
+  X,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
@@ -30,15 +33,17 @@ import {
 } from "@/components/ui/actionsheet";
 import CommentItem from "@/components/CommentItem";
 import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
+import { Button, ButtonIcon, ButtonText } from "../ui/button";
 
 const { height } = Dimensions.get("window");
 
 interface VideoItemProps {
   item: Post;
   isActive: boolean;
+  onClosed?: () => void;
 }
 
-const VideoItem = ({ item, isActive }: VideoItemProps) => {
+const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   const videoRef = useRef<Video | null>(null);
   const isPlayingRef = useRef(false);
   const [hearted, setHearted] = useState(false);
@@ -128,7 +133,6 @@ const VideoItem = ({ item, isActive }: VideoItemProps) => {
 
   const handleLoad = useCallback(() => {
     setIsVideoLoaded(true);
-    console.log("Video is fully loaded");
   }, []);
 
   const handlePlaybackStatusUpdate = (status: any) => {
@@ -153,6 +157,19 @@ const VideoItem = ({ item, isActive }: VideoItemProps) => {
             shouldPlay={false} // Controlled via isActive
             isLooping
           />
+          {onClosed && (
+            <Button
+              variant="link"
+              className="absolute left-4 top-4 border-0"
+              onPress={onClosed}>
+              <X
+                color="#fff"
+                fill="#fff"
+                className="border-white/50 bg-white/30 backdrop-blur-lg"
+                size={30}
+              />
+            </Button>
+          )}
 
           {shouldShowPlayIcon && (
             <Center className="absolute left-1/2 top-1/2 -ml-[30px] -mt-[30px] opacity-50">
