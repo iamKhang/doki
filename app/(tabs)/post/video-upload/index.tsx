@@ -1,32 +1,32 @@
-import React, { useEffect, useRef } from "react";
-import { View, Text, Animated, Settings } from "react-native";
+// VideoUploadScreen.tsx
+import React, { useState } from "react";
+import { View, Text, ActivityIndicator, Alert } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { Link, useLocalSearchParams } from "expo-router";
 import {
   GestureHandlerRootView,
   TouchableOpacity,
 } from "react-native-gesture-handler";
-import Constants from "expo-constants";
 import {
-  AArrowDown,
-  CaseSensitive,
-  ChevronDown,
   ChevronLeft,
-  Disc3,
-  Instagram,
   Music,
-  Send,
   Settings2,
+  Send,
+  CaseSensitive,
   Sticker,
+  Instagram,
+  ChevronDown,
 } from "lucide-react-native";
-import { Avatar } from "@/components/ui/avatar";
-import { Button, ButtonText } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Image } from "@/components/ui/image";
+import { uriToBlob } from "@/utils/UriToBlob";
+import { uploadFile } from "@/services/FileService";
 
 export default function VideoUploadScreen() {
   const { videoUri } = useLocalSearchParams() as {
     videoUri: string | string[];
   };
+  const [uploading, setUploading] = useState(false);
 
   if (!videoUri) {
     return (
@@ -36,40 +36,44 @@ export default function VideoUploadScreen() {
     );
   }
 
+  const handleUpload = async () => {
+    try {
+      setUploading(true);
+      // Chuyển đổi URI thành Blob
+      const blob = await uriToBlob(
+        Array.isArray(videoUri) ? videoUri[0] : videoUri,
+      );
+      console.log("Uri:", videoUri);
+
+      console.log("Blob:", blob);
+
+      // Tạo đường dẫn file (có thể thêm timestamp hoặc userID để duy nhất)
+      const fileName = `videos/${Date.now()}.mp4`;
+
+      // Tải lên Supabase
+      const publicUrl = await uploadFile(fileName, blob);
+
+      if (publicUrl) {
+        Alert.alert("Thành công", "Video đã được tải lên thành công!");
+        // Bạn có thể chuyển hướng hoặc lưu URL vào cơ sở dữ liệu ở đây
+        // Ví dụ:
+        // await saveVideoUrlToDatabase(publicUrl);
+        // router.push("/some-other-screen");
+      } else {
+        Alert.alert("Lỗi", "Không thể tải lên video.");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      Alert.alert("Lỗi", "Đã xảy ra lỗi khi tải lên video.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View className="relative flex-1 bg-black">
-        <View className="absolute left-1/2 top-10 z-10 flex -translate-x-1/2 flex-row items-center rounded-2xl bg-slate-600 px-4 py-1">
-          <Music size={20} color="white" />
-          <Text className="ml-3 text-white">Thêm âm thanh</Text>
-        </View>
-        <View className="absolute left-[10%] top-10 z-10 flex -translate-x-1/2 flex-row items-center">
-          <Link href="/post/new-post" asChild>
-            <TouchableOpacity style={{ padding: 10 }}>
-              <ChevronLeft size={30} color="white" />
-            </TouchableOpacity>
-          </Link>
-        </View>
-        <View className="absolute right-[2%] top-20 z-10 flex h-1/2 -translate-x-1/2 items-center justify-between space-y-8">
-          <TouchableOpacity>
-            <Settings2 size={30} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Send size={30} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <CaseSensitive size={30} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Sticker size={30} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Instagram size={30} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <ChevronDown size={30} color="white" />
-          </TouchableOpacity>
-        </View>
+        {/* Các thành phần UI khác */}
         <Video
           source={{ uri: Array.isArray(videoUri) ? videoUri[0] : videoUri }}
           rate={1.0}
@@ -78,7 +82,13 @@ export default function VideoUploadScreen() {
           resizeMode={ResizeMode.COVER}
           shouldPlay
           isLooping
-          style={{ position: "absolute", top: 0, left: 0, bottom: 0, right: 0 }} // Cho video bao phủ toàn màn hình
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+          }}
         />
       </View>
       <View className="w-full flex-row justify-center space-x-2 bg-black px-3 py-5">
@@ -92,8 +102,15 @@ export default function VideoUploadScreen() {
           />
           <Text className="font-bold text-black">Nhật ký của bạn</Text>
         </Button>
-        <Button className="ml-2 flex-1 items-center rounded-full bg-red-500 px-4 py-2">
-          <Text className="font-bold text-white">Tiếp</Text>
+        <Button
+          className="ml-2 flex-1 items-center rounded-full bg-red-500 px-4 py-2"
+          onPress={handleUpload}
+          disabled={uploading}>
+          {uploading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="font-bold text-white">Tiếp</Text>
+          )}
         </Button>
       </View>
     </GestureHandlerRootView>

@@ -1,5 +1,7 @@
 import supabase from "@/configs/supabase/supabase";
+
 const BUCKET_NAME = "UPLOAD_BUCKET";
+
 /**
  * Upload a file to the specified bucket.
  *
@@ -9,19 +11,24 @@ const BUCKET_NAME = "UPLOAD_BUCKET";
  */
 export async function uploadFile(
   filePath: string,
-  file: File | Blob,
+  file: Blob,
 ): Promise<string | null> {
   const { data, error } = await supabase.storage
     .from(BUCKET_NAME)
-    .upload(filePath, file);
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
 
   if (error) {
     console.error("Upload error:", error.message);
     return null;
   }
 
-  // Return the public URL of the uploaded file
-  return getPublicUrl(filePath);
+  // Trả về URL công khai
+  const publicUrl = await getPublicUrl(filePath);
+  return publicUrl;
 }
 
 /**
@@ -31,7 +38,14 @@ export async function uploadFile(
  * @returns The public URL of the file or null if not found.
  */
 export async function getPublicUrl(filePath: string): Promise<string | null> {
-  const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath);
+  const { data, error } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(filePath);
+
+  if (error) {
+    console.error("Get public URL error:", error.message);
+    return null;
+  }
 
   return data?.publicUrl || null;
 }

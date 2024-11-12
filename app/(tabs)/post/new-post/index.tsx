@@ -46,6 +46,8 @@ export default function CameraScreen() {
       quality: 1,
     });
 
+    console.log("pick video: ", result);
+
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
     } else {
