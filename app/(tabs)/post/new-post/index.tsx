@@ -5,10 +5,11 @@ import {
   CameraType,
   CameraView,
   useCameraPermissions,
+  CameraProps,
 } from "expo-camera";
 import { Link, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { Video } from "expo-av";
+import { ResizeMode, Video } from "expo-av";
 import { RefreshCcw, ImageIcon, X, Filter } from "lucide-react-native";
 
 export default function CameraScreen() {
@@ -18,25 +19,25 @@ export default function CameraScreen() {
   const [selectedImage, setSelectedImage] = useState<string | undefined>(
     undefined,
   );
-  const cameraRef = useRef(null);
+  // const cameraRef = useRef<CameraProps>>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
 
+  const router = useRouter();
   const toggleCameraFacing = () => {
     setFacing((current) => (current === "back" ? "front" : "back"));
   };
 
   const handleRecord = async () => {
-    if (cameraRef.current) {
-      if (isRecording) {
-        cameraRef.current.stopRecording();
-        setIsRecording(false);
-      } else {
-        setIsRecording(true);
-        const video = await cameraRef.current.recordAsync();
-        setVideoUri(video.uri);
-        setIsRecording(false);
-      }
-    }
+    // if (cameraRef.current) {
+    //   if (isRecording) {
+    //     cameraRef.current.stopRecording();
+    //     setIsRecording(false);
+    //   } else {
+    //     setIsRecording(true);
+    //     const video = await cameraRef.current.recordAsync();
+    //     setIsRecording(false);
+    //   }
+    // }
   };
 
   const pickVideo = async () => {
@@ -46,23 +47,20 @@ export default function CameraScreen() {
       quality: 1,
     });
 
-    console.log("pick video: ", result);
-
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
     } else {
       alert("You did not select any image.");
     }
-  };
 
-  const router = useRouter();
-  useEffect(() => {
-    if (selectedImage) {
-      router.push(
-        `/post/video-upload?videoUri=${encodeURIComponent(selectedImage)}`,
-      );
+    if (result.assets) {
+      console.log("GET: ", result.assets[0].uri);
+      router.push({
+        pathname: "/post/video-upload",
+        params: { videoUri: encodeURIComponent(result.assets[0].uri) },
+      });
     }
-  }, [selectedImage, router]);
+  };
 
   if (!permission) return <View />;
   if (!permission.granted) {
@@ -76,12 +74,14 @@ export default function CameraScreen() {
     );
   }
 
+  console.log("Selected Image: ", selectedImage);
+
   return (
     <View className="flex-1 justify-center bg-black">
       <CameraView
         style={{ flex: 1 }}
         facing={facing}
-        ref={cameraRef}
+        // ref={cameraRef}
         onCameraReady={() => setIsCameraReady(true)}>
         <View className="absolute top-10 w-full flex-row justify-between px-5">
           <TouchableOpacity onPress={toggleCameraFacing}>
@@ -115,6 +115,25 @@ export default function CameraScreen() {
           {/* </Link> */}
         </View>
       </CameraView>
+
+      {/* {selectedImage && (
+        <Video
+          source={{ uri: selectedImage }}
+          rate={1.0}
+          volume={1.0}
+          isMuted={false}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay
+          isLooping
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+          }}
+        />
+      )} */}
       {/* {videoUri && (
         <Video
           source={{ uri: videoUri }}

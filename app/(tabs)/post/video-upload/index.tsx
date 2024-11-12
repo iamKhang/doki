@@ -3,29 +3,18 @@ import React, { useState } from "react";
 import { View, Text, ActivityIndicator, Alert } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { Link, useLocalSearchParams } from "expo-router";
-import {
-  GestureHandlerRootView,
-  TouchableOpacity,
-} from "react-native-gesture-handler";
-import {
-  ChevronLeft,
-  Music,
-  Settings2,
-  Send,
-  CaseSensitive,
-  Sticker,
-  Instagram,
-  ChevronDown,
-} from "lucide-react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Button } from "@/components/ui/button";
 import { Image } from "@/components/ui/image";
-import { uriToBlob } from "@/utils/UriToBlob";
 import { uploadFile } from "@/services/FileService";
+import { uriToBase64 } from "@/utils/uriToBase64";
 
 export default function VideoUploadScreen() {
-  const { videoUri } = useLocalSearchParams() as {
-    videoUri: string | string[];
+  const params = useLocalSearchParams() as {
+    videoUri: string;
   };
+
+  const { videoUri } = params;
   const [uploading, setUploading] = useState(false);
 
   if (!videoUri) {
@@ -40,18 +29,12 @@ export default function VideoUploadScreen() {
     try {
       setUploading(true);
       // Chuyển đổi URI thành Blob
-      const blob = await uriToBlob(
-        Array.isArray(videoUri) ? videoUri[0] : videoUri,
-      );
-      console.log("Uri:", videoUri);
-
-      console.log("Blob:", blob);
-
-      // Tạo đường dẫn file (có thể thêm timestamp hoặc userID để duy nhất)
-      const fileName = `videos/${Date.now()}.mp4`;
-
+      const base64 = await uriToBase64(videoUri);
+      const randomSeed = Date.now();
+      const fileName = `videos/${randomSeed}.mp4`;
       // Tải lên Supabase
-      const publicUrl = await uploadFile(fileName, blob);
+      const publicUrl = await uploadFile(fileName, base64);
+      console.log("Public URL: ", publicUrl);
 
       if (publicUrl) {
         Alert.alert("Thành công", "Video đã được tải lên thành công!");
@@ -63,7 +46,7 @@ export default function VideoUploadScreen() {
         Alert.alert("Lỗi", "Không thể tải lên video.");
       }
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("Upload error in ui:", error);
       Alert.alert("Lỗi", "Đã xảy ra lỗi khi tải lên video.");
     } finally {
       setUploading(false);

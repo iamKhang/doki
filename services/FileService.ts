@@ -11,24 +11,27 @@ const BUCKET_NAME = "UPLOAD_BUCKET";
  */
 export async function uploadFile(
   filePath: string,
-  file: Blob,
+  file: File | Blob,
 ): Promise<string | null> {
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
+  console.log("FILE", file);
 
-  if (error) {
-    console.error("Upload error:", error.message);
+  try {
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: "video/mp4",
+      });
+
+    console.log("DATA", data);
+  } catch (error) {
+    console.error("ERROR HERE Upload error:", error);
     return null;
   }
 
-  // Trả về URL công khai
-  const publicUrl = await getPublicUrl(filePath);
-  return publicUrl;
+  // Return the public URL of the uploaded file
+  return getPublicUrl(filePath);
 }
 
 /**
@@ -38,12 +41,10 @@ export async function uploadFile(
  * @returns The public URL of the file or null if not found.
  */
 export async function getPublicUrl(filePath: string): Promise<string | null> {
-  const { data, error } = supabase.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(filePath);
+  const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath);
 
-  if (error) {
-    console.error("Get public URL error:", error.message);
+  if (!data) {
+    console.error("Get public URL error: No data returned");
     return null;
   }
 
