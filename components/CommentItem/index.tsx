@@ -17,7 +17,11 @@ const CommentItem = ({
       <Avatar size="md">
         <AvatarFallbackText>{user_name}</AvatarFallbackText>
         <AvatarImage
-          source={user_avatar || require("@/assets/images/avatar.jpg")}
+          source={
+            user_avatar
+              ? { uri: user_avatar }
+              : require("@/assets/images/avatar.jpg")
+          }
         />
       </Avatar>
       <VStack className="flex-1">

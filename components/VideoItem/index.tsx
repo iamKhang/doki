@@ -242,7 +242,9 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
               <AvatarFallbackText>{item.user_id}</AvatarFallbackText>
               <AvatarImage
                 source={
-                  owner?.avatar_url || require("@/assets/images/avatar.jpg")
+                  owner?.avatar_url
+                    ? { uri: owner?.avatar_url }
+                    : require("@/assets/images/avatar.jpg")
                 }
               />
               <AvatarBadge />
@@ -257,7 +259,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
                   size={35}
                 />
                 <Text className="text-white">
-                  {formatNumber(staticLikeTotal)}
+                  {formatNumber(item.like_total || 0)}
                 </Text>
               </VStack>
             </TouchableWithoutFeedback>
@@ -265,9 +267,6 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
             <TouchableWithoutFeedback onPress={handleOpenActionsheet}>
               <VStack style={{ alignItems: "center" }}>
                 <MessageCircle fill="white" color="white" size={35} />
-                <Text className="text-white">
-                  {formatNumber(staticCommentTotal)}
-                </Text>
               </VStack>
             </TouchableWithoutFeedback>
 
@@ -321,7 +320,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
         <ActionsheetContent>
           <ActionsheetDragIndicatorWrapper>
             <ActionsheetItemText className="text-lg font-semibold">
-              {formatNumber(staticCommentTotal)} Bình luận
+              {formatNumber(comments?.length || 0)} Bình luận
             </ActionsheetItemText>
           </ActionsheetDragIndicatorWrapper>
           {/* Example static comments */}
