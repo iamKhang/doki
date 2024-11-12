@@ -15,7 +15,9 @@ const CommentItem = ({
   return (
     <HStack className="gap-2">
       <Avatar size="md">
-        <AvatarFallbackText>{user_name}</AvatarFallbackText>
+        <AvatarFallbackText>
+          {user_avatar ? "" : "Default Text"}
+        </AvatarFallbackText>
         <AvatarImage
           source={
             user_avatar
