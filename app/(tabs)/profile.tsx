@@ -22,7 +22,12 @@ import {
   ShoppingBasket,
   UserRoundPlus,
 } from "lucide-react-native";
-import { Text, Touchable, TouchableHighlight } from "react-native";
+import {
+  Text,
+  Touchable,
+  TouchableHighlight,
+  TouchableOpacity,
+} from "react-native";
 import {
   GestureHandlerRootView,
   ScrollView,
@@ -36,6 +41,7 @@ import AuthModal from "@/components/AuthModal";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { signOut } from "@/store/authSlice";
+import { Redirect } from "expo-router";
 
 export default function ProfilePage() {
   const auth = useSelector((state: RootState) => state.auth);
@@ -54,13 +60,18 @@ export default function ProfilePage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
 
-  // Load initial posts
   useEffect(() => {
     const loadInitialPosts = async () => {
       setLoading(true);
       const postService = new PostService();
-      const initialPosts = await postService.getPostsByPage(0, pageSize);
-      setPosts(initialPosts as Post[]);
+      if (auth.appUser) {
+        const initialPosts = await postService.getPostsByUser(
+          0,
+          pageSize,
+          auth.appUser,
+        );
+        setPosts(initialPosts as Post[]);
+      }
       setLoading(false);
       setPage(1);
     };
@@ -72,10 +83,13 @@ export default function ProfilePage() {
     if (loadingMore) return;
     setLoadingMore(true);
     const postService = new PostService();
-    const newPosts = (await postService.getPostsByPage(
-      page,
-      pageSize,
-    )) as Post[];
+    const newPosts = auth.appUser
+      ? ((await postService.getPostsByUser(
+          page,
+          pageSize,
+          auth.appUser,
+        )) as Post[])
+      : [];
 
     if (newPosts.length > 0) {
       setPosts((prevPosts) => [...prevPosts, ...newPosts]);
@@ -100,7 +114,6 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    // Dispatch the signIn action with email and password
     await dispatch(signOut());
   };
 
@@ -110,18 +123,7 @@ export default function ProfilePage() {
   }, [auth.user]);
 
   if (!auth.user) {
-    return (
-      <Center className="flex-1 gap-4 p-4">
-        <Text>You must login Doki to view this page</Text>
-        <Button
-          variant="outline"
-          onPress={() => setAuthModalOpen(true)}
-          className="min-w-[100px]">
-          <ButtonText>Login</ButtonText>
-        </Button>
-        <AuthModal open={authModalOpen} setOpen={setAuthModalOpen} />
-      </Center>
-    );
+    return <Redirect href="/auth/auth" />;
   }
 
   return (
@@ -131,13 +133,10 @@ export default function ProfilePage() {
         onScroll={handleScroll}
         scrollEventThrottle={400}>
         <VStack space="md" className="pb-20">
-          {/* Profile details and buttons */}
           <HStack className="items-center justify-center px-4 py-2">
-            <Text className="text-lg font-bold">Người Việt gốc WestS...</Text>
-            <HStack space="sm">
-              <Headphones size={16} />
-              <Menu size={16} />
-            </HStack>
+            <Text className="text-lg font-bold">
+              {auth.appUser?.first_name} {auth.appUser?.last_name}
+            </Text>
           </HStack>
 
           <VStack space="sm" className="items-center">
@@ -146,16 +145,16 @@ export default function ProfilePage() {
                 <AvatarFallbackText></AvatarFallbackText>
                 <AvatarImage
                   source={{
-                    uri: "https://img.hoidap247.com/picture/question/20200508/large_1588936738888.jpg?v=0",
+                    uri: auth.appUser?.avatar_url,
                   }}
                   alt="avatar"
                 />
               </Avatar>
             </TouchableHighlight>
-            <Text>@_iamquanzkhang</Text>
+            <Text>{auth.appUser?.username}</Text>
             <HStack space="xl" className="justify-center">
               <VStack className="items-center">
-                <Text className="font-bold">240</Text>
+                <Text className="font-bold">{auth.appUser?.follow_total}</Text>
                 <Text className="text-xs">Đã follow</Text>
               </VStack>
               <VStack className="items-center">

@@ -58,6 +58,22 @@ export default class PostService implements IPostService {
     return data as Post[];
   }
 
+  async getPostsByUser<Post>(
+    page: number,
+    pageSize: number,
+    user: User,
+  ): Promise<Post[]> {
+    const { data, error } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("user_id", user.user_id)
+      .order("created_at", { ascending: false })
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error) throw error;
+    return data as Post[];
+  }
+
   async getRandomPosts<Post>(
     limit: number,
     excludeIds: string[],

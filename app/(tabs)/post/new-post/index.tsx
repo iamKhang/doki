@@ -5,7 +5,6 @@ import {
   CameraType,
   CameraView,
   useCameraPermissions,
-  CameraProps,
 } from "expo-camera";
 import { Link, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
