@@ -26,6 +26,7 @@ export default class PostService implements IPostService {
     const { data: createdData, error } = await supabase
       .from("posts")
       .insert(data as any)
+      .select("*")
       .single();
     if (error) throw error;
     return createdData as Post;

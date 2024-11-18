@@ -1,37 +1,45 @@
+// services/FileService.ts
 import supabase from "@/configs/supabase/supabase";
 
 const BUCKET_NAME = "UPLOAD_BUCKET";
 
 /**
- * Upload a file to the specified bucket.
+ * Upload a file to the specified bucket using ArrayBuffer.
  *
  * @param filePath - The path where the file will be stored in the bucket.
- * @param file - The file (Blob or File object) to be uploaded.
+ * @param arrayBuffer - The ArrayBuffer of the file to be uploaded.
+ * @param contentType - The MIME type of the file.
  * @returns The public URL of the uploaded file if successful, otherwise null.
  */
 export async function uploadFile(
   filePath: string,
-  file: File | Blob,
+  arrayBuffer: ArrayBuffer,
+  contentType: string = "video/mp4", // Mặc định là video/mp4
 ): Promise<string | null> {
-  console.log("FILE", file);
+  console.log("Uploading file:", filePath);
 
   try {
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(filePath, file, {
+      .upload(filePath, arrayBuffer, {
         cacheControl: "3600",
         upsert: false,
-        contentType: "video/mp4",
+        contentType, // Sử dụng contentType được truyền vào
       });
 
-    console.log("DATA", data);
+    if (error) {
+      console.error("Upload error:", error);
+      throw error;
+    }
+
+    console.log("Upload successful:", data);
   } catch (error) {
     console.error("ERROR HERE Upload error:", error);
     return null;
   }
 
   // Return the public URL of the uploaded file
-  return getPublicUrl(filePath);
+  return await getPublicUrl(filePath);
 }
 
 /**
@@ -41,10 +49,12 @@ export async function uploadFile(
  * @returns The public URL of the file or null if not found.
  */
 export async function getPublicUrl(filePath: string): Promise<string | null> {
-  const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath);
+  const { data, error } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(filePath);
 
-  if (!data) {
-    console.error("Get public URL error: No data returned");
+  if (error) {
+    console.error("Get public URL error:", error);
     return null;
   }
 

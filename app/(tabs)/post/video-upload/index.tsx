@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { View, Text, ActivityIndicator, Alert } from "react-native";
 import { Video, ResizeMode } from "expo-av";
-import { Link, useLocalSearchParams } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Button } from "@/components/ui/button";
 import { Image } from "@/components/ui/image";
@@ -24,6 +24,20 @@ export default function VideoUploadScreen() {
       </View>
     );
   }
+
+  const router = useRouter();
+
+  const handleContinue = () => {
+    if (videoUri) {
+      // Điều hướng đến màn hình post/post-content kèm theo videoUri
+      router.push({
+        pathname: "/post/post-content",
+        params: { videoUri },
+      });
+    } else {
+      Alert.alert("Lỗi", "Không có video nào để tiếp tục.");
+    }
+  };
 
   const handleUpload = async () => {
     try {
@@ -85,7 +99,7 @@ export default function VideoUploadScreen() {
           />
           <Text className="font-bold text-black">Nhật ký của bạn</Text>
         </Button>
-        <Button
+        {/* <Button
           className="ml-2 flex-1 items-center rounded-full bg-red-500 px-4 py-2"
           onPress={handleUpload}
           disabled={uploading}>
@@ -94,6 +108,12 @@ export default function VideoUploadScreen() {
           ) : (
             <Text className="font-bold text-white">Tiếp</Text>
           )}
+        </Button> */}
+
+        <Button
+          className="ml-2 flex-1 items-center rounded-full bg-red-500 px-4 py-2"
+          onPress={handleContinue}>
+          <Text className="font-bold text-white">Tiếp</Text>
         </Button>
       </View>
     </GestureHandlerRootView>
