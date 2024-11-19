@@ -53,7 +53,7 @@ export default function VideoPostCreation() {
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { videoUri } = params;
-  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null); // Thêm state để lưu URL video đã upload
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const loadInitialTopics = async () => {
@@ -97,20 +97,34 @@ export default function VideoPostCreation() {
       setUploading(true);
 
       // Chuyển đổi URI thành Base64
-      const base64 = await uriToBase64(videoUri);
+      let base64 = await uriToBase64(videoUri);
       console.log("Base64 string:", base64.substring(0, 100)); // Log phần đầu để kiểm tra
 
       // Chuyển đổi Base64 thành ArrayBuffer
-      const arrayBuffer = base64ToArrayBuffer(base64);
+      let arrayBuffer = base64ToArrayBuffer(base64);
       console.log("ArrayBuffer:", arrayBuffer);
 
       // Tạo tên file ngẫu nhiên
       const randomSeed = Date.now();
-      const fileName = `videos/${randomSeed}.mp4`;
+      const fileNameVideo = `videos/${randomSeed}.mp4`;
 
       // Upload file lên Supabase Storage
-      const publicUrl = await uploadFile(fileName, arrayBuffer);
+      const publicUrl = await uploadFile(fileNameVideo, arrayBuffer);
       console.log("Public URL:", publicUrl);
+
+      if (thumbnailUri) {
+        base64 = await uriToBase64(thumbnailUri);
+      } else {
+        throw new Error("Thumbnail URI is null.");
+      }
+
+      arrayBuffer = base64ToArrayBuffer(base64);
+      const fileNameThumbnail = `thumbnails/${randomSeed}.jpg`;
+      const publicUrlThumbnail = await uploadFile(
+        fileNameThumbnail,
+        arrayBuffer,
+        "image/jpeg",
+      );
 
       if (!publicUrl) {
         throw new Error("Không thể tải lên video.");
@@ -123,7 +137,7 @@ export default function VideoPostCreation() {
         user_id: auth.appUser.user_id,
         title: description,
         video: publicUrl,
-        thumbnail_url: thumbnailUri || undefined,
+        thumbnail_url: publicUrlThumbnail || undefined,
         like_total: 0,
         view_total: 0,
       };
