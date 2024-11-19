@@ -89,7 +89,7 @@ export default function CustomTabBar({
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={options.tabBarAccessibilityLabel}
-              testID={options.tabBarTestID}
+              testID={options.tabBarButtonTestID}
               onPress={onPress}
               onLongPress={onLongPress}>
               {typeof options.tabBarIcon === "function" ? (

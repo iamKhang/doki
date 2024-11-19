@@ -1,7 +1,6 @@
 import CustomTabBar from "@/components/navigation/CustomTabBar";
 import { Tabs } from "expo-router";
 import { House, MessageCircle, Search, UserRound } from "lucide-react-native";
-import { Box } from "@/components/ui/box";
 
 export default function RootLayout() {
   return (
@@ -9,10 +8,8 @@ export default function RootLayout() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        freezeOnBlur: true,
-        header: () => {
-          return <Box></Box>;
-        },
+        header: () => null,
+        tabBarHideOnKeyboard: true,
       }}>
       <Tabs.Screen
         name="index"

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Avatar,
   AvatarFallbackText,
@@ -14,20 +14,13 @@ import { VStack } from "@/components/ui/vstack";
 import {
   BookMarked,
   Grid,
-  Headphones,
   Heart,
   Lock,
-  Menu,
   Music,
   ShoppingBasket,
   UserRoundPlus,
 } from "lucide-react-native";
-import {
-  Text,
-  Touchable,
-  TouchableHighlight,
-  TouchableOpacity,
-} from "react-native";
+import { Text, TouchableHighlight } from "react-native";
 import {
   GestureHandlerRootView,
   ScrollView,
@@ -37,11 +30,10 @@ import PostService from "@/services/PostService";
 import { Spinner } from "@/components/ui/spinner";
 import { Modal, ModalBody, ModalContent } from "@/components/ui/modal";
 import VideoItem from "@/components/VideoItem";
-import AuthModal from "@/components/AuthModal";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { signOut } from "@/store/authSlice";
-import { Redirect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 export default function ProfilePage() {
   const auth = useSelector((state: RootState) => state.auth);
@@ -57,8 +49,8 @@ export default function ProfilePage() {
     item: null,
   });
   const pageSize = 9;
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
   useEffect(() => {
     const loadInitialPosts = async () => {
@@ -78,6 +70,17 @@ export default function ProfilePage() {
 
     loadInitialPosts();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log("Auth user:", auth.user);
+      if (!auth.user) {
+        router.push({
+          pathname: "/auth/login",
+        });
+      }
+    }, [auth.user]),
+  );
 
   const loadMorePosts = async () => {
     if (loadingMore) return;
@@ -117,15 +120,6 @@ export default function ProfilePage() {
     await dispatch(signOut());
   };
 
-  useEffect(() => {
-    setAuthModalOpen(!auth.user);
-    console.log(auth.appUser);
-  }, [auth.user]);
-
-  if (!auth.user) {
-    return <Redirect href="/auth/auth" />;
-  }
-
   return (
     <GestureHandlerRootView className="flex-1">
       <ScrollView
@@ -140,7 +134,7 @@ export default function ProfilePage() {
           </HStack>
 
           <VStack space="sm" className="items-center">
-            <TouchableHighlight onPress={() => setAuthModalOpen(true)}>
+            <TouchableHighlight>
               <Avatar size="xl">
                 <AvatarFallbackText></AvatarFallbackText>
                 <AvatarImage

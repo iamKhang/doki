@@ -44,6 +44,7 @@ import { Button, ButtonIcon, ButtonText } from "../ui/button";
 import CommentService, { ExtendedComment } from "@/services/CommentService";
 import UserService from "@/services/UserService";
 import { HStack } from "../ui/hstack";
+import { Spinner } from "../ui/spinner";
 
 const { height } = Dimensions.get("window");
 
@@ -326,7 +327,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
           {/* Example static comments */}
           {commentLoading ? (
             <Center>
-              <Loader2 size={30} color="#000" />
+              <Spinner />
             </Center>
           ) : (
             <ScrollView>
