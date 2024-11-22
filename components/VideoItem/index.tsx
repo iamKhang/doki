@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   TouchableWithoutFeedback,
   Dimensions,
@@ -58,44 +58,64 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   const [isPaused, setIsPaused] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [playerError, setPlayerError] = useState<Error | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const player = useVideoPlayer(item.video || null, (player) => {
     player.loop = true;
   });
 
-  const { status } = useEvent(player, "statusChange", {
-    status: player.status,
-  });
+  const playerRef = useRef(player);
+  const isPlayingRef = useRef(isPlaying);
 
   useEffect(() => {
-    if (status === "readyToPlay") {
-      setIsVideoReady(true);
-      setPlayerError(null);
-    } else if (status === "error") {
-      setIsVideoReady(false);
-      setPlayerError(new Error("Failed to load video"));
-    }
-  }, [status]);
+    playerRef.current = player;
+    isPlayingRef.current = isPlaying;
+  }, [player, isPlaying]);
 
-  const { isPlaying } = useEvent(player, "playingChange", {
-    isPlaying: player.playing,
-  });
+  useEffect(() => {
+    if (!player) return;
 
-  const handleTap = useCallback(async () => {
-    if (!isVideoReady || !player) return;
+    const playingSubscription = player.addListener(
+      "playingChange",
+      ({ isPlaying }) => {
+        setIsPlaying(isPlaying);
+        isPlayingRef.current = isPlaying;
+      },
+    );
+
+    const statusSubscription = player.addListener(
+      "statusChange",
+      ({ status }) => {
+        if (status === "readyToPlay") {
+          setIsVideoReady(true);
+          setPlayerError(null);
+        } else if (status === "error") {
+          setIsVideoReady(false);
+          setPlayerError(new Error("Failed to load video"));
+        }
+      },
+    );
+
+    return () => {
+      playingSubscription.remove();
+      statusSubscription.remove();
+    };
+  }, [player]);
+
+  const handleTap = useCallback(() => {
+    if (!isVideoReady || !playerRef.current) return;
 
     try {
-      if (isPlaying) {
-        await player.pause();
+      if (isPlayingRef.current) {
+        playerRef.current.pause();
       } else {
-        await player.play();
+        playerRef.current.play();
       }
-      setIsPaused(!isPlaying);
     } catch (error) {
-      console.error("Error handling video tap:", error);
+      console.error("Error handling tap:", error);
       setPlayerError(error as Error);
     }
-  }, [isPlaying, isVideoReady, player]);
+  }, [isVideoReady]);
 
   useEffect(() => {
     if (!player || !isVideoReady) return;
@@ -104,7 +124,9 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
 
     const handlePlayback = async () => {
       try {
-        if (isActive && !isPaused && mounted) {
+        if (!mounted || !player) return;
+
+        if (isActive && !isPaused) {
           await player.play();
         } else {
           await player.pause();
@@ -122,20 +144,15 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
     return () => {
       mounted = false;
       try {
-        player.pause();
+        if (player) {
+          player.pause();
+        }
       } catch (error) {
-        console.error("Error cleaning up player:", error);
+        // Ignore cleanup errors
+        console.debug("Cleanup error:", error);
       }
     };
   }, [isActive, isPaused, player, isVideoReady]);
-
-  useEffect(() => {
-    if (!isActive) {
-      setIsPaused(false);
-      setIsVideoReady(false);
-      setPlayerError(null);
-    }
-  }, [isActive]);
 
   const [comments, setComments] = useState<ExtendedComment[] | null>(null);
   const [owner, setOwner] = useState<User | null>(null);
@@ -180,7 +197,13 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
 
   return (
     <>
-      <TouchableWithoutFeedback onPress={handleTap}>
+      <TouchableWithoutFeedback
+        onPress={handleTap}
+        style={Platform.select({
+          android: { elevation: 1 },
+          web: { cursor: "pointer" },
+          default: {},
+        })}>
         <Box
           style={{ width: "100%", height: contentHeight }}
           className="relative">
@@ -191,13 +214,19 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
             nativeControls={false}
           />
 
+          {!isVideoReady && !playerError && (
+            <Center className="absolute inset-0 bg-black/50">
+              <Spinner color="white" />
+            </Center>
+          )}
+
           {playerError && (
             <Center className="absolute inset-0 bg-black/50">
               <Text className="text-white">Failed to load video</Text>
             </Center>
           )}
 
-          {(!isPlaying || isPaused) && isVideoReady && (
+          {!isPlaying && isVideoReady && (
             <Center className="absolute left-1/2 top-1/2 -ml-[30px] -mt-[30px] opacity-50">
               <Play
                 color="#fff"
