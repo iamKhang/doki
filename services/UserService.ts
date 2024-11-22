@@ -25,7 +25,7 @@ export default class UserService implements IUserService {
   async create<User>(data: User): Promise<User> {
     const { data: createdData, error } = await supabase
       .from("users")
-      .insert(data as any)
+      .insert([data as any])
       .single();
     if (error) throw error;
     return createdData as User;

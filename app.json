@@ -12,6 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.doki.app"
@@ -56,7 +57,15 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-font"
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": false,
+          "supportsPictureInPicture": false
+        }
+      ],
+      "expo-font",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

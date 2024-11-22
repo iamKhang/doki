@@ -32,10 +32,41 @@ const initialState: AuthState = {
 // Async actions for signup, login, and logout
 export const signUp = createAsyncThunk(
   "auth/signUp",
-  async ({ email, password }: SignUpPayload, { rejectWithValue }) => {
+  async ({ email, password }: SignUpPayload, { rejectWithValue, dispatch }) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return rejectWithValue(error.message);
-    return data.user as SupabaseUser;
+
+    // Trigger sign-in to auto-login after signup
+    try {
+      const { data: loginData, error: loginError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+      if (loginError) return rejectWithValue(loginError.message);
+
+      const userService = new UserService();
+      await userService.create({
+        user_id: loginData.user.id,
+        email: loginData.user.email,
+        first_name: "User",
+        last_name: new Date().getTime().toString(),
+        username:
+          loginData.user.email?.split("@")[0] +
+          new Date().getTime().toString().slice(-4),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        password_hash: "",
+        follow_total: 0,
+      }); // Create user in users table
+      const appUser = await userService.getOne(loginData.user.id);
+
+      // Return both SupabaseUser and appUser after auto-login
+      return { user: loginData.user as SupabaseUser, appUser };
+    } catch (autoLoginError: any) {
+      return rejectWithValue(autoLoginError.message);
+    }
   },
 );
 
@@ -81,13 +112,11 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(
-        signUp.fulfilled,
-        (state, action: PayloadAction<SupabaseUser>) => {
-          state.loading = false;
-          state.user = action.payload;
-        },
-      )
+      .addCase(signUp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.appUser = action.payload.appUser as User; // Store appUser from auto-login
+      })
       .addCase(signUp.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
