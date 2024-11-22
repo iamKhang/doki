@@ -57,23 +57,23 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
 
   const [isPaused, setIsPaused] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [playerError, setPlayerError] = useState<Error | null>(null);
 
   const player = useVideoPlayer(item.video || null, (player) => {
     player.loop = true;
-    if (isActive && !isPaused) {
-      player.play();
-    }
   });
 
-  // Use statusChange event to detect when video is ready
   const { status } = useEvent(player, "statusChange", {
     status: player.status,
   });
 
-  // Set video ready when status changes to 'readyToPlay'
   useEffect(() => {
     if (status === "readyToPlay") {
       setIsVideoReady(true);
+      setPlayerError(null);
+    } else if (status === "error") {
+      setIsVideoReady(false);
+      setPlayerError(new Error("Failed to load video"));
     }
   }, [status]);
 
@@ -81,55 +81,68 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
     isPlaying: player.playing,
   });
 
-  const [comments, setComments] = useState<ExtendedComment[] | null>(null);
-  const [owner, setOwner] = useState<User | null>(null);
-  const [hearted, setHearted] = useState(false);
-  const [showActionsheet, setShowActionsheet] = useState(false);
-  const [commentLoading, setCommentLoading] = useState(false);
-
-  // Improved tap handler with better state management
   const handleTap = useCallback(async () => {
     if (!isVideoReady || !player) return;
 
     try {
       if (isPlaying) {
-        player.pause();
+        await player.pause();
       } else {
-        player.play();
+        await player.play();
       }
       setIsPaused(!isPlaying);
     } catch (error) {
       console.error("Error handling video tap:", error);
+      setPlayerError(error as Error);
     }
   }, [isPlaying, isVideoReady, player]);
 
-  // Handle active state changes
   useEffect(() => {
     if (!player || !isVideoReady) return;
 
+    let mounted = true;
+
     const handlePlayback = async () => {
       try {
-        if (isActive && !isPaused) {
+        if (isActive && !isPaused && mounted) {
           await player.play();
         } else {
           await player.pause();
         }
       } catch (error) {
         console.error("Error handling playback:", error);
+        if (mounted) {
+          setPlayerError(error as Error);
+        }
       }
     };
 
     handlePlayback();
+
+    return () => {
+      mounted = false;
+      try {
+        player.pause();
+      } catch (error) {
+        console.error("Error cleaning up player:", error);
+      }
+    };
   }, [isActive, isPaused, player, isVideoReady]);
 
-  // Reset pause state when video becomes inactive
   useEffect(() => {
     if (!isActive) {
       setIsPaused(false);
+      setIsVideoReady(false);
+      setPlayerError(null);
     }
   }, [isActive]);
 
-  // Fetch comments when actionsheet is opened
+  const [comments, setComments] = useState<ExtendedComment[] | null>(null);
+  const [owner, setOwner] = useState<User | null>(null);
+  const [hearted, setHearted] = useState(false);
+  const [showActionsheet, setShowActionsheet] = useState(false);
+  const [commentLoading, setCommentLoading] = useState(false);
+
   useEffect(() => {
     const fetchComments = async () => {
       if (showActionsheet && comments === null) {
@@ -150,7 +163,6 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
     fetchComments();
   }, [showActionsheet, comments, item.post_id]);
 
-  // Fetch owner data
   useEffect(() => {
     const fetchOwner = async () => {
       if (owner === null) {
@@ -179,7 +191,12 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
             nativeControls={false}
           />
 
-          {/* Show play icon when video is paused */}
+          {playerError && (
+            <Center className="absolute inset-0 bg-black/50">
+              <Text className="text-white">Failed to load video</Text>
+            </Center>
+          )}
+
           {(!isPlaying || isPaused) && isVideoReady && (
             <Center className="absolute left-1/2 top-1/2 -ml-[30px] -mt-[30px] opacity-50">
               <Play
@@ -320,6 +337,7 @@ export default React.memo(VideoItem, (prevProps, nextProps) => {
   return (
     prevProps.isActive === nextProps.isActive &&
     prevProps.item.post_id === nextProps.item.post_id &&
+    prevProps.item.video === nextProps.item.video &&
     prevProps.onClosed === nextProps.onClosed
   );
 });

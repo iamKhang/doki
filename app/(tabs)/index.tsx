@@ -10,6 +10,7 @@ import { Box } from "@/components/ui/box";
 import VideoItem from "@/components/VideoItem";
 import PostService from "@/services/PostService";
 import { useTabBarHeight } from "@/hooks/useTabBarHeight";
+import { useIsFocused } from "@react-navigation/native";
 
 const { height: WINDOW_HEIGHT } = Dimensions.get("window");
 
@@ -25,6 +26,8 @@ export default function HomePage() {
   // Refs
   const postIdsRef = useRef<string[]>([]);
   const flatListRef = useRef<FlatList>(null);
+
+  const isFocused = useIsFocused();
 
   const fetchPosts = useCallback(async () => {
     if (isLoading || !hasMore) return;
@@ -98,9 +101,9 @@ export default function HomePage() {
 
   const renderItem = useCallback(
     ({ item, index }: { item: Post; index: number }) => (
-      <VideoItem item={item} isActive={index === activeIndex} />
+      <VideoItem item={item} isActive={index === activeIndex && isFocused} />
     ),
-    [activeIndex],
+    [activeIndex, isFocused],
   );
 
   const ListFooterComponent = useCallback(

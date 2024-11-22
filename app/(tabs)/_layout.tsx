@@ -11,7 +11,6 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarHideOnKeyboard: true,
-          freezeOnBlur: true,
         }}>
         <Tabs.Screen
           name="index"
