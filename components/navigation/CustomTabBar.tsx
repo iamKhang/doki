@@ -1,5 +1,4 @@
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-
 import { Button } from "../ui/button";
 import { Plus } from "lucide-react-native";
 import { Fragment } from "react";
@@ -7,20 +6,24 @@ import { Box } from "../ui/box";
 import { Pressable } from "../ui/pressable";
 import { Text } from "../ui/text";
 import clsx from "clsx";
-import { Platform } from "react-native";
-import { Link } from "expo-router";
+import { Platform, View } from "react-native";
+import { Link, usePathname } from "expo-router";
+import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 
 export default function CustomTabBar({
   state,
   descriptors,
   navigation,
 }: BottomTabBarProps) {
+  const pathname = usePathname();
+  const tabBarHeight = useTabBarHeight();
+
   const tabsRoutes = state.routes.filter((route) =>
     ["index", "search", "notification", "profile"].includes(route.name),
   );
 
   const middleIndex = Math.floor(tabsRoutes.length / 2);
-  const isHome = state.index === 0;
+  const isHome = pathname === "/" || pathname === "/index";
 
   const CenterButton = (
     <Box className="flex items-center justify-start px-4">
@@ -28,27 +31,36 @@ export default function CustomTabBar({
         <Button
           key="center"
           className={clsx(
-            "rounded-lg bg-white active:opacity-80",
+            "h-10 w-10 rounded-lg active:opacity-80",
             isHome ? "bg-white" : "bg-black",
           )}
-          size="sm"
-          style={{ marginTop: 4 }}>
-          <Plus strokeWidth={2} color={isHome ? "#000" : "#fff"} />
+          size="sm">
+          <Plus
+            strokeWidth={2}
+            color={isHome ? "#000" : "#fff"}
+            style={{
+              width: Platform.OS === "web" ? 24 : 28,
+              height: Platform.OS === "web" ? 20 : 24,
+            }}
+          />
         </Button>
       </Link>
     </Box>
   );
+
   return (
     <Box
       className={clsx(
-        "flex-row gap-1 px-2 py-2",
+        "flex-row items-center gap-1 px-2 py-2",
         isHome ? "bg-black" : "bg-white",
-        { "pb-6": Platform.OS === "ios" },
+        Platform.OS === "ios" && "pb-6", // iOS safe area
+        Platform.OS === "web" && "fixed bottom-0 left-0 right-0", // Web fixed positioning
       )}
       style={{
-        minHeight: 54,
+        height: tabBarHeight,
         borderTopWidth: 0.5,
         borderTopColor: "rgb(209, 213, 219)",
+        zIndex: Platform.OS === "web" ? 50 : undefined,
       }}>
       {tabsRoutes.map((route, index) => {
         const { options } = descriptors[route.key];
@@ -73,46 +85,40 @@ export default function CustomTabBar({
           }
         };
 
-        const onLongPress = () => {
-          navigation.emit({
-            type: "tabLongPress",
-            target: route.key,
-          });
-        };
-
         return (
           <Fragment key={index}>
             {index === middleIndex && CenterButton}
             <Pressable
               key={route.key}
-              className="flex-1 items-center justify-center"
+              className={clsx(
+                "flex-1 items-center justify-center py-2",
+                Platform.OS === "web" && "cursor-pointer hover:opacity-80",
+              )}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={options.tabBarAccessibilityLabel}
               testID={options.tabBarButtonTestID}
-              onPress={onPress}
-              onLongPress={onLongPress}>
-              {typeof options.tabBarIcon === "function" ? (
-                <options.tabBarIcon
-                  focused={isFocused}
-                  color={isFocused ? (isHome ? "#fff" : "#000") : "#888"}
-                  size={24}
-                />
-              ) : null}
-              <Text
-                className={clsx(
-                  "text-xs",
-                  isFocused ? (isHome ? "#fff" : "#000") : "#888",
-                )}>
-                {typeof label === "function"
-                  ? label({
-                      focused: isFocused,
-                      color: isFocused ? (isHome ? "#fff" : "#000") : "#888",
-                      position: "below-icon",
-                      children: "",
-                    })
-                  : label}
-              </Text>
+              onPress={onPress}>
+              <View className="items-center">
+                {typeof options.tabBarIcon === "function" ? (
+                  <options.tabBarIcon
+                    focused={isFocused}
+                    color={isFocused ? (isHome ? "#fff" : "#000") : "#888"}
+                    size={Platform.OS === "web" ? 20 : 24}
+                  />
+                ) : null}
+                <Text
+                  className={clsx(
+                    "mt-1 text-xs",
+                    isFocused
+                      ? isHome
+                        ? "text-white"
+                        : "text-black"
+                      : "text-gray-500",
+                  )}>
+                  {typeof label === "string" ? label : ""}
+                </Text>
+              </View>
             </Pressable>
           </Fragment>
         );

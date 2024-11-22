@@ -1,20 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   TouchableWithoutFeedback,
   Dimensions,
   Platform,
   ScrollView,
 } from "react-native";
-import { Video, ResizeMode } from "expo-av";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { Box } from "@/components/ui/box";
 import {
   Bookmark,
-  ChevronLeft,
   Heart,
-  Loader,
-  Loader2,
   MessageCircle,
-  MoveLeft,
   Play,
   Share2,
   X,
@@ -39,12 +35,13 @@ import {
   ActionsheetItemText,
 } from "@/components/ui/actionsheet";
 import CommentItem from "@/components/CommentItem";
-import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
-import { Button, ButtonIcon, ButtonText } from "../ui/button";
+import { Button } from "../ui/button";
 import CommentService, { ExtendedComment } from "@/services/CommentService";
 import UserService from "@/services/UserService";
 import { HStack } from "../ui/hstack";
 import { Spinner } from "../ui/spinner";
+import { useTabBarHeight } from "@/hooks/useTabBarHeight";
+import { useEvent } from "expo";
 
 const { height } = Dimensions.get("window");
 
@@ -55,160 +52,145 @@ interface VideoItemProps {
 }
 
 const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
-  const videoRef = useRef<Video | null>(null);
-  const isPlayingRef = useRef(false);
+  const tabBarHeight = useTabBarHeight();
+  const contentHeight = height - tabBarHeight;
+
+  const [isPaused, setIsPaused] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+
+  const player = useVideoPlayer(item.video || null, (player) => {
+    player.loop = true;
+    if (isActive && !isPaused) {
+      player.play();
+    }
+  });
+
+  // Use statusChange event to detect when video is ready
+  const { status } = useEvent(player, "statusChange", {
+    status: player.status,
+  });
+
+  // Set video ready when status changes to 'readyToPlay'
+  useEffect(() => {
+    if (status === "readyToPlay") {
+      setIsVideoReady(true);
+    }
+  }, [status]);
+
+  const { isPlaying } = useEvent(player, "playingChange", {
+    isPlaying: player.playing,
+  });
+
   const [comments, setComments] = useState<ExtendedComment[] | null>(null);
   const [owner, setOwner] = useState<User | null>(null);
   const [hearted, setHearted] = useState(false);
   const [showActionsheet, setShowActionsheet] = useState(false);
-  const [shouldShowPlayIcon, setShouldShowPlayIcon] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [commentLoading, setCommentLoading] = useState(false);
 
-  // Static numbers for counts
-  const staticLikeTotal = 1234;
-  const staticCommentTotal = 56;
-  const staticBookmarkTotal = 78;
-  const staticShareTotal = 90;
+  // Improved tap handler with better state management
+  const handleTap = useCallback(async () => {
+    if (!isVideoReady || !player) return;
 
-  const handleTap = useCallback(() => {
-    if (videoRef.current) {
-      videoRef.current.getStatusAsync().then((status) => {
-        if (status.isLoaded && status.isPlaying) {
-          videoRef.current?.pauseAsync();
-          setShouldShowPlayIcon(true);
-        } else if (status.isLoaded) {
-          videoRef.current?.playAsync();
-          setShouldShowPlayIcon(false);
-        }
-      });
+    try {
+      if (isPlaying) {
+        player.pause();
+      } else {
+        player.play();
+      }
+      setIsPaused(!isPlaying);
+    } catch (error) {
+      console.error("Error handling video tap:", error);
     }
-  }, []);
+  }, [isPlaying, isVideoReady, player]);
 
-  const handleOpenActionsheet = useCallback(() => {
-    setShowActionsheet(true);
-  }, []);
-
-  const handleCloseActionsheet = useCallback(() => {
-    setShowActionsheet(false);
-  }, []);
-
+  // Handle active state changes
   useEffect(() => {
-    let isMounted = true;
+    if (!player || !isVideoReady) return;
 
-    const managePlayback = async () => {
-      // Ensure videoRef.current is still valid when calling async functions
-      if (videoRef.current && isVideoLoaded && isMounted) {
-        try {
-          const status = await videoRef.current.getStatusAsync();
-
-          // Only control playback if the video is loaded and active
-          if (status.isLoaded) {
-            if (isActive && !status.isPlaying) {
-              if (videoRef.current) {
-                // Double-check videoRef.current is not null
-                await videoRef.current.playAsync();
-                if (isMounted) setShouldShowPlayIcon(false);
-              }
-            } else if (!isActive && status.isPlaying) {
-              if (videoRef.current) {
-                // Double-check videoRef.current is not null
-                await videoRef.current.pauseAsync();
-                await videoRef.current.setPositionAsync(0);
-                if (isMounted) setShouldShowPlayIcon(true);
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error managing playback:", error);
+    const handlePlayback = async () => {
+      try {
+        if (isActive && !isPaused) {
+          await player.play();
+        } else {
+          await player.pause();
         }
+      } catch (error) {
+        console.error("Error handling playback:", error);
       }
     };
 
-    managePlayback();
+    handlePlayback();
+  }, [isActive, isPaused, player, isVideoReady]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [isActive, isVideoLoaded]);
+  // Reset pause state when video becomes inactive
+  useEffect(() => {
+    if (!isActive) {
+      setIsPaused(false);
+    }
+  }, [isActive]);
 
-  // Use useFocusEffect to pause the video when the screen loses focus
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        // The screen is unfocused
-        if (videoRef.current) {
-          videoRef.current.pauseAsync();
-          setShouldShowPlayIcon(true);
-        }
-      };
-    }, [isVideoLoaded]),
-  );
-
-  const handleLoad = useCallback(() => {
-    setIsVideoLoaded(true);
-  }, []);
-
+  // Fetch comments when actionsheet is opened
   useEffect(() => {
     const fetchComments = async () => {
-      try {
-        setCommentLoading(true);
-        const commentService = new CommentService();
-        const comments = await commentService.getByPostId<ExtendedComment>(
-          item.post_id,
-        );
-        setComments(comments);
-      } catch (error) {
-        console.error("Error fetching comments:", error);
-      } finally {
-        setCommentLoading(false);
+      if (showActionsheet && comments === null) {
+        try {
+          setCommentLoading(true);
+          const commentService = new CommentService();
+          const comments = await commentService.getByPostId<ExtendedComment>(
+            item.post_id,
+          );
+          setComments(comments);
+        } catch (error) {
+          console.error("Error fetching comments:", error);
+        } finally {
+          setCommentLoading(false);
+        }
       }
     };
+    fetchComments();
+  }, [showActionsheet, comments, item.post_id]);
 
-    if (showActionsheet && comments === null) {
-      fetchComments();
-    }
-  }, [showActionsheet]);
-
+  // Fetch owner data
   useEffect(() => {
     const fetchOwner = async () => {
-      try {
-        // Fetch owner data
-        const userService = new UserService();
-        const owner = await userService.getOne<User>(item.user_id);
-        setOwner(owner);
-      } catch (error) {
-        console.error("Error fetching owner:", error);
+      if (owner === null) {
+        try {
+          const userService = new UserService();
+          const ownerData = await userService.getOne<User>(item.user_id);
+          setOwner(ownerData);
+        } catch (error) {
+          console.error("Error fetching owner:", error);
+        }
       }
     };
-
-    if (owner === null) {
-      fetchOwner();
-    }
-  }, []);
-
-  const handlePlaybackStatusUpdate = (status: any) => {
-    // Handle playback updates here and manage play/pause when fully loaded
-    if (status.isLoaded) {
-      isPlayingRef.current = status.isPlaying;
-    }
-  };
+    fetchOwner();
+  }, [owner, item.user_id]);
 
   return (
     <>
       <TouchableWithoutFeedback onPress={handleTap}>
-        <Box style={{ width: "100%", height }} className="relative">
-          <Video
-            ref={videoRef}
-            onLoad={handleLoad} // Set video as loaded when ready
-            onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-            style={{ width: "100%", height: "100%", backgroundColor: "black" }}
-            source={{ uri: item.video || "" }}
-            useNativeControls={false}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay={false} // Controlled via isActive
-            isLooping
+        <Box
+          style={{ width: "100%", height: contentHeight }}
+          className="relative">
+          <VideoView
+            player={player}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            nativeControls={false}
           />
+
+          {/* Show play icon when video is paused */}
+          {(!isPlaying || isPaused) && isVideoReady && (
+            <Center className="absolute left-1/2 top-1/2 -ml-[30px] -mt-[30px] opacity-50">
+              <Play
+                color="#fff"
+                fill="#fff"
+                className="border-white/50 bg-white/30 backdrop-blur-lg"
+                size={60}
+              />
+            </Center>
+          )}
+
           {onClosed && (
             <Button
               variant="link"
@@ -221,17 +203,6 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
                 size={30}
               />
             </Button>
-          )}
-
-          {shouldShowPlayIcon && (
-            <Center className="absolute left-1/2 top-1/2 -ml-[30px] -mt-[30px] opacity-50">
-              <Play
-                color="#fff"
-                fill="#fff"
-                className="border-white/50 bg-white/30 backdrop-blur-lg"
-                size={60}
-              />
-            </Center>
           )}
 
           {/* Action tab */}
@@ -265,7 +236,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
               </VStack>
             </TouchableWithoutFeedback>
 
-            <TouchableWithoutFeedback onPress={handleOpenActionsheet}>
+            <TouchableWithoutFeedback onPress={() => setShowActionsheet(true)}>
               <VStack style={{ alignItems: "center" }}>
                 <MessageCircle fill="white" color="white" size={35} />
               </VStack>
@@ -274,18 +245,14 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
             <TouchableWithoutFeedback>
               <VStack style={{ alignItems: "center" }}>
                 <Bookmark fill="white" color="white" size={35} />
-                <Text className="text-white">
-                  {formatNumber(staticBookmarkTotal)}
-                </Text>
+                <Text className="text-white">{formatNumber(0)}</Text>
               </VStack>
             </TouchableWithoutFeedback>
 
             <TouchableWithoutFeedback>
               <VStack style={{ alignItems: "center" }}>
                 <Share2 fill="white" color="white" size={35} />
-                <Text className="text-white">
-                  {formatNumber(staticShareTotal)}
-                </Text>
+                <Text className="text-white">{formatNumber(0)}</Text>
               </VStack>
             </TouchableWithoutFeedback>
           </VStack>
@@ -315,7 +282,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
       {/* Actionsheet */}
       <Actionsheet
         isOpen={showActionsheet}
-        onClose={handleCloseActionsheet}
+        onClose={() => setShowActionsheet(false)}
         snapPoints={[60]}>
         <ActionsheetBackdrop />
         <ActionsheetContent>
@@ -324,7 +291,6 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
               {formatNumber(comments?.length || 0)} Bình luận
             </ActionsheetItemText>
           </ActionsheetDragIndicatorWrapper>
-          {/* Example static comments */}
           {commentLoading ? (
             <Center>
               <Spinner />
@@ -353,6 +319,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
 export default React.memo(VideoItem, (prevProps, nextProps) => {
   return (
     prevProps.isActive === nextProps.isActive &&
-    prevProps.item.post_id === nextProps.item.post_id
+    prevProps.item.post_id === nextProps.item.post_id &&
+    prevProps.onClosed === nextProps.onClosed
   );
 });

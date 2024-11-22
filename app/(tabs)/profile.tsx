@@ -76,7 +76,7 @@ export default function ProfilePage() {
       console.log("Auth user:", auth.user);
       if (!auth.user) {
         router.push({
-          pathname: "/auth/login",
+          pathname: "/(auth)/login",
         });
       }
     }, [auth.user]),

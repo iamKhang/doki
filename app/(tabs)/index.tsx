@@ -1,19 +1,30 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { FlatList, Dimensions, ActivityIndicator } from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
+import { FlatList, Dimensions, ActivityIndicator, View } from "react-native";
 import { Box } from "@/components/ui/box";
 import VideoItem from "@/components/VideoItem";
 import PostService from "@/services/PostService";
+import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 
-const { height } = Dimensions.get("window");
+const { height: WINDOW_HEIGHT } = Dimensions.get("window");
 
 export default function HomePage() {
+  const tabBarHeight = useTabBarHeight();
+  const contentHeight = WINDOW_HEIGHT - tabBarHeight;
+
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
 
-  // Ref to store post IDs to avoid triggering multiple fetches based on `posts` dependency
+  // Refs
   const postIdsRef = useRef<string[]>([]);
+  const flatListRef = useRef<FlatList>(null);
 
   const fetchPosts = useCallback(async () => {
     if (isLoading || !hasMore) return;
@@ -31,16 +42,9 @@ export default function HomePage() {
       );
 
       if (uniquePosts.length === 0) {
-        // No more unique posts to fetch
         setHasMore(false);
       } else {
-        setPosts((prevPosts) => {
-          const updatedPosts = [...prevPosts, ...uniquePosts];
-          console.log("Updated posts length:", updatedPosts.length);
-          return updatedPosts;
-        });
-
-        // Update the ref with new post IDs
+        setPosts((prevPosts) => [...prevPosts, ...uniquePosts]);
         postIdsRef.current = [
           ...postIdsRef.current,
           ...uniquePosts.map((post) => post.post_id),
@@ -53,61 +57,95 @@ export default function HomePage() {
     }
   }, [isLoading, hasMore]);
 
-  // Fetch initial posts on component mount
+  // Initial fetch
   useEffect(() => {
     fetchPosts();
   }, []);
 
-  const onViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: any[] }) => {
-      if (viewableItems && viewableItems.length > 0) {
-        const firstViewableIndex = viewableItems[0].index;
-        if (firstViewableIndex !== activeIndex) {
-          setActiveIndex(firstViewableIndex);
-        }
-      }
-    },
-    [activeIndex],
+  // Memoized configs and handlers
+  const viewabilityConfig = useMemo(
+    () => ({
+      itemVisiblePercentThreshold: 80,
+      minimumViewTime: 100,
+    }),
+    [],
   );
 
-  const viewabilityConfig = {
-    itemVisiblePercentThreshold: 80,
-  };
+  const viewabilityConfigCallbackPairs = useRef([
+    {
+      viewabilityConfig,
+      onViewableItemsChanged: ({ viewableItems }: { viewableItems: any[] }) => {
+        if (viewableItems && viewableItems.length > 0) {
+          const firstViewableIndex = viewableItems[0].index;
+          if (firstViewableIndex !== activeIndex) {
+            setActiveIndex(firstViewableIndex);
+          }
+        }
+      },
+    },
+  ]);
+
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: contentHeight,
+      offset: contentHeight * index,
+      index,
+    }),
+    [contentHeight],
+  );
+
+  const keyExtractor = useCallback((item: Post) => item.post_id.toString(), []);
 
   const renderItem = useCallback(
-    ({ item, index }: { item: Post; index: number }) => {
-      const isActive = index === activeIndex;
-      return <VideoItem item={item} isActive={isActive} />;
-    },
+    ({ item, index }: { item: Post; index: number }) => (
+      <VideoItem item={item} isActive={index === activeIndex} />
+    ),
     [activeIndex],
   );
+
+  const ListFooterComponent = useCallback(
+    () =>
+      isLoading ? (
+        <View style={{ height: 50, justifyContent: "center" }}>
+          <ActivityIndicator />
+        </View>
+      ) : null,
+    [isLoading],
+  );
+
+  const onEndReached = useCallback(() => {
+    if (!isLoading && hasMore) {
+      fetchPosts();
+    }
+  }, [fetchPosts, isLoading, hasMore]);
 
   return (
     <Box style={{ flex: 1 }}>
       <FlatList
+        ref={flatListRef}
         data={posts}
         renderItem={renderItem}
-        keyExtractor={(item) => item.post_id.toString()}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
         showsVerticalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
         decelerationRate="fast"
-        snapToInterval={height}
+        snapToInterval={contentHeight}
         snapToAlignment="start"
         scrollEventThrottle={16}
         maxToRenderPerBatch={3}
-        initialNumToRender={3}
-        windowSize={1} // Only render 1 screen height of items
-        getItemLayout={(_, index) => ({
-          length: height,
-          offset: height * index,
-          index,
-        })}
-        removeClippedSubviews
-        ListFooterComponent={isLoading ? <ActivityIndicator /> : null}
-        updateCellsBatchingPeriod={100}
-        onEndReached={fetchPosts}
-        onEndReachedThreshold={0.5} // Trigger when user is 50% from the bottom
+        initialNumToRender={2}
+        windowSize={3}
+        removeClippedSubviews={true}
+        ListFooterComponent={ListFooterComponent}
+        updateCellsBatchingPeriod={50}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 10,
+        }}
+        style={{ flex: 1 }}
       />
     </Box>
   );
