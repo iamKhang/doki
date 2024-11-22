@@ -100,7 +100,7 @@ export default function VideoUploadScreen() {
           <Text className="font-bold text-black">Nhật ký của bạn</Text>
         </Button>
         {/* <Button
-          className="ml-2 flex-1 items-center rounded-full bg-red-500 px-4 py-2"
+          className="items-center flex-1 px-4 py-2 ml-2 bg-red-500 rounded-full"
           onPress={handleUpload}
           disabled={uploading}>
           {uploading ? (
