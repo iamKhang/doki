@@ -42,13 +42,14 @@ export default class CommentService implements ICommentService {
     return data as PostComment[];
   }
 
-  async create<PostComment>(data: PostComment): Promise<PostComment> {
+  async create<ExtendedComment>(data: any): Promise<ExtendedComment> {
     const { data: createdData, error } = await supabase
       .from("comments")
-      .insert(data as any)
+      .insert([data as any])
+      .select("*, user:users(*)")
       .single();
     if (error) throw error;
-    return createdData as PostComment;
+    return createdData as ExtendedComment;
   }
 
   async update<PostComment>(

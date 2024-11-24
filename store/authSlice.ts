@@ -29,14 +29,39 @@ const initialState: AuthState = {
   error: null,
 };
 
+// Async action to initialize authentication state
+export const initializeAuth = createAsyncThunk(
+  "auth/initializeAuth",
+  async (_, { rejectWithValue }) => {
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) return rejectWithValue(error.message);
+
+      if (session) {
+        const userService = new UserService();
+        const appUser: User = await userService.getOne(session.user.id);
+        return { user: session.user, appUser };
+      } else {
+        return { user: null, appUser: null };
+      }
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  },
+);
+
 // Async actions for signup, login, and logout
 export const signUp = createAsyncThunk(
   "auth/signUp",
-  async ({ email, password }: SignUpPayload, { rejectWithValue, dispatch }) => {
+  async ({ email, password }: SignUpPayload, { rejectWithValue }) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return rejectWithValue(error.message);
 
-    // Trigger sign-in to auto-login after signup
+    // Auto-login after signup
     try {
       const { data: loginData, error: loginError } =
         await supabase.auth.signInWithPassword({
@@ -60,7 +85,8 @@ export const signUp = createAsyncThunk(
         password_hash: "",
         follow_total: 0,
       }); // Create user in users table
-      const appUser = await userService.getOne(loginData.user.id);
+
+      const appUser: User = await userService.getOne(loginData.user.id);
 
       // Return both SupabaseUser and appUser after auto-login
       return { user: loginData.user as SupabaseUser, appUser };
@@ -81,8 +107,8 @@ export const signIn = createAsyncThunk(
 
     const userService = new UserService();
     try {
-      const user = await userService.getOne(data.user.id); // Fetch user details from users table
-      return { user: data.user, appUser: user }; // Return both SupabaseUser and appUser
+      const appUser: User = await userService.getOne(data.user.id); // Fetch user details from users table
+      return { user: data.user, appUser }; // Return both SupabaseUser and appUser
     } catch (userError: any) {
       return rejectWithValue(userError.message);
     }
@@ -108,6 +134,23 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Handle initialization
+      .addCase(initializeAuth.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(initializeAuth.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.appUser = action.payload.appUser;
+        state.loading = false;
+      })
+      .addCase(initializeAuth.rejected, (state, action) => {
+        state.user = null;
+        state.appUser = null;
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Handle sign-up
       .addCase(signUp.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -115,12 +158,13 @@ const authSlice = createSlice({
       .addCase(signUp.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
-        state.appUser = action.payload.appUser as User; // Store appUser from auto-login
+        state.appUser = action.payload.appUser; // Store appUser from auto-login
       })
       .addCase(signUp.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Handle sign-in
       .addCase(signIn.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -128,12 +172,13 @@ const authSlice = createSlice({
       .addCase(signIn.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
-        state.appUser = action.payload.appUser as User; // Store appUser
+        state.appUser = action.payload.appUser; // Store appUser
       })
       .addCase(signIn.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Handle sign-out
       .addCase(signOut.fulfilled, (state) => {
         state.user = null;
         state.appUser = null; // Clear appUser
