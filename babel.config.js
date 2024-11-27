@@ -8,6 +8,7 @@ module.exports = function (api) {
           jsxImportSource: "nativewind",
         },
       ],
+      "@react-native/babel-preset",
       "nativewind/babel",
     ],
 
