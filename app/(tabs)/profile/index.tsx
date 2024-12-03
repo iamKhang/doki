@@ -54,7 +54,9 @@ export default function ProfilePage() {
   const pageSize = 9;
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'all' | 'private' | 'liked'>('all');
+  const [activeTab, setActiveTab] = useState<"all" | "private" | "liked">(
+    "all",
+  );
   const [privatePosts, setPrivatePosts] = useState<Post[]>([]);
   const [likedPosts, setLikedPosts] = useState<Post[]>([]);
 
@@ -130,7 +132,12 @@ export default function ProfilePage() {
     setLoading(true);
     const postService = new PostService();
     if (auth.appUser) {
-      const privatePostsData = await postService.getPostsByUser(0, pageSize, auth.appUser, true);
+      const privatePostsData = await postService.getPostsByUser(
+        0,
+        pageSize,
+        auth.appUser,
+        true,
+      );
       setPrivatePosts(privatePostsData as Post[]);
     }
     setLoading(false);
@@ -141,15 +148,17 @@ export default function ProfilePage() {
     const postService = new PostService();
     if (auth.appUser) {
       const { data: likedPostsData } = await supabase
-        .from('likes')
-        .select(`
+        .from("likes")
+        .select(
+          `
           posts (*)
-        `)
-        .eq('user_id', auth.appUser.user_id)
+        `,
+        )
+        .eq("user_id", auth.appUser.user_id)
         .limit(pageSize);
-      
+
       if (likedPostsData) {
-        setLikedPosts(likedPostsData.map(item => item.posts) as Post[]);
+        setLikedPosts(likedPostsData.map((item) => item.posts) as Post[]);
       }
     }
     setLoading(false);
@@ -196,7 +205,9 @@ export default function ProfilePage() {
               </VStack>
             </HStack>
             <HStack space="sm">
-              <Button variant="outline">
+              <Button
+                variant="outline"
+                onPress={() => router.push("/(tabs)/profile/edit-profile")}>
                 <ButtonText>Sửa hồ sơ</ButtonText>
               </Button>
               <Button variant="outline">
@@ -220,36 +231,36 @@ export default function ProfilePage() {
           </VStack>
 
           <HStack className="justify-around">
-            <Pressable 
+            <Pressable
               className={clsx(
                 "flex-1 py-2",
-                activeTab === 'all' && "border-b-2 border-b-black"
+                activeTab === "all" && "border-b-2 border-b-black",
               )}
-              onPress={() => setActiveTab('all')}>
+              onPress={() => setActiveTab("all")}>
               <Center>
                 <Grid size={16} color="#D91656" />
               </Center>
             </Pressable>
-            <Pressable 
+            <Pressable
               className={clsx(
                 "flex-1 py-2",
-                activeTab === 'private' && "border-b-2 border-b-black"
+                activeTab === "private" && "border-b-2 border-b-black",
               )}
               onPress={() => {
-                setActiveTab('private');
+                setActiveTab("private");
                 loadPrivatePosts();
               }}>
               <Center>
                 <Lock size={16} color="#D91656" />
               </Center>
             </Pressable>
-            <Pressable 
+            <Pressable
               className={clsx(
                 "flex-1 py-2",
-                activeTab === 'liked' && "border-b-2 border-b-black"
+                activeTab === "liked" && "border-b-2 border-b-black",
               )}
               onPress={() => {
-                setActiveTab('liked');
+                setActiveTab("liked");
                 loadLikedPosts();
               }}>
               <Center>
@@ -265,15 +276,30 @@ export default function ProfilePage() {
               </Center>
             ) : (
               <>
-                {activeTab === 'all' && posts.map((post, index) => (
-                  <PostItem key={index} post={post} onPress={() => handlePostPress(post)} />
-                ))}
-                {activeTab === 'private' && privatePosts.map((post, index) => (
-                  <PostItem key={index} post={post} onPress={() => handlePostPress(post)} />
-                ))}
-                {activeTab === 'liked' && likedPosts.map((post, index) => (
-                  <PostItem key={index} post={post} onPress={() => handlePostPress(post)} />
-                ))}
+                {activeTab === "all" &&
+                  posts.map((post, index) => (
+                    <PostItem
+                      key={index}
+                      post={post}
+                      onPress={() => handlePostPress(post)}
+                    />
+                  ))}
+                {activeTab === "private" &&
+                  privatePosts.map((post, index) => (
+                    <PostItem
+                      key={index}
+                      post={post}
+                      onPress={() => handlePostPress(post)}
+                    />
+                  ))}
+                {activeTab === "liked" &&
+                  likedPosts.map((post, index) => (
+                    <PostItem
+                      key={index}
+                      post={post}
+                      onPress={() => handlePostPress(post)}
+                    />
+                  ))}
               </>
             )}
           </Box>
