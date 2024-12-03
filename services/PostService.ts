@@ -63,7 +63,7 @@ export default class PostService implements IPostService {
     page: number,
     pageSize: number,
     user: User,
-    isPrivate?: boolean
+    isPrivate?: boolean,
   ): Promise<Post[]> {
     let query = supabase
       .from("posts")

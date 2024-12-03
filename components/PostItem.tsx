@@ -9,9 +9,7 @@ interface PostItemProps {
 
 const PostItem = ({ post, onPress }: PostItemProps) => {
   return (
-    <Pressable
-      className="aspect-square w-1/3 p-1"
-      onPress={onPress}>
+    <Pressable className="aspect-square w-1/3 p-1" onPress={onPress}>
       {post.thumbnail_url ? (
         <Image
           source={{ uri: post.thumbnail_url }}
@@ -28,4 +26,4 @@ const PostItem = ({ post, onPress }: PostItemProps) => {
   );
 };
 
-export default PostItem; 
+export default PostItem;
