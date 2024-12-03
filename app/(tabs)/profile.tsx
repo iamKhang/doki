@@ -34,6 +34,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { signOut } from "@/store/authSlice";
 import { useFocusEffect, useRouter } from "expo-router";
+import { clsx } from "clsx";
+import supabase from "@/configs/supabase/supabase";
+import PostItem from "@/components/PostItem";
 
 export default function ProfilePage() {
   const auth = useSelector((state: RootState) => state.auth);
@@ -51,6 +54,9 @@ export default function ProfilePage() {
   const pageSize = 9;
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'all' | 'private' | 'liked'>('all');
+  const [privatePosts, setPrivatePosts] = useState<Post[]>([]);
+  const [likedPosts, setLikedPosts] = useState<Post[]>([]);
 
   useEffect(() => {
     const loadInitialPosts = async () => {
@@ -120,6 +126,35 @@ export default function ProfilePage() {
     await dispatch(signOut());
   };
 
+  const loadPrivatePosts = async () => {
+    setLoading(true);
+    const postService = new PostService();
+    if (auth.appUser) {
+      const privatePostsData = await postService.getPostsByUser(0, pageSize, auth.appUser, true);
+      setPrivatePosts(privatePostsData as Post[]);
+    }
+    setLoading(false);
+  };
+
+  const loadLikedPosts = async () => {
+    setLoading(true);
+    const postService = new PostService();
+    if (auth.appUser) {
+      const { data: likedPostsData } = await supabase
+        .from('likes')
+        .select(`
+          posts (*)
+        `)
+        .eq('user_id', auth.appUser.user_id)
+        .limit(pageSize);
+      
+      if (likedPostsData) {
+        setLikedPosts(likedPostsData.map(item => item.posts) as Post[]);
+      }
+    }
+    setLoading(false);
+  };
+
   return (
     <GestureHandlerRootView className="flex-1">
       <ScrollView
@@ -169,7 +204,7 @@ export default function ProfilePage() {
               </Button>
               <Button variant="outline">
                 <ButtonText>
-                  <UserRoundPlus size={16} />
+                  <UserRoundPlus size={16} color="#D91656" />
                 </ButtonText>
               </Button>
             </HStack>
@@ -182,37 +217,43 @@ export default function ProfilePage() {
                 <ButtonText>Đăng xuất </ButtonText>
               </Button>
             </HStack>
-            <HStack space="md">
-              <HStack space="xs" className="items-center">
-                <Music size={16} />
-                <Text>TikTok Studio</Text>
-              </HStack>
-              <HStack space="xs" className="items-center">
-                <ShoppingBasket size={16} />
-                <Text>Đơn hàng của bạn</Text>
-              </HStack>
-            </HStack>
           </VStack>
 
           <HStack className="justify-around">
-            <Pressable className="flex-1 border-b-2 border-b-black py-2">
+            <Pressable 
+              className={clsx(
+                "flex-1 py-2",
+                activeTab === 'all' && "border-b-2 border-b-black"
+              )}
+              onPress={() => setActiveTab('all')}>
               <Center>
-                <Grid size={16} />
+                <Grid size={16} color="#D91656" />
               </Center>
             </Pressable>
-            <Pressable className="flex-1 py-2">
+            <Pressable 
+              className={clsx(
+                "flex-1 py-2",
+                activeTab === 'private' && "border-b-2 border-b-black"
+              )}
+              onPress={() => {
+                setActiveTab('private');
+                loadPrivatePosts();
+              }}>
               <Center>
-                <Lock size={16} />
+                <Lock size={16} color="#D91656" />
               </Center>
             </Pressable>
-            <Pressable className="flex-1 py-2">
+            <Pressable 
+              className={clsx(
+                "flex-1 py-2",
+                activeTab === 'liked' && "border-b-2 border-b-black"
+              )}
+              onPress={() => {
+                setActiveTab('liked');
+                loadLikedPosts();
+              }}>
               <Center>
-                <BookMarked size={16} />
-              </Center>
-            </Pressable>
-            <Pressable className="flex-1 py-2">
-              <Center>
-                <Heart size={16} />
+                <Heart size={16} color="#D91656" />
               </Center>
             </Pressable>
           </HStack>
@@ -223,25 +264,17 @@ export default function ProfilePage() {
                 <Spinner size="small" className="text-slate-500" />
               </Center>
             ) : (
-              posts.map((post, index) => (
-                <Pressable
-                  key={index}
-                  className="aspect-square w-1/3 p-1"
-                  onPress={() => handlePostPress(post)}>
-                  {post.thumbnail_url ? (
-                    <Image
-                      source={{ uri: post.thumbnail_url }}
-                      alt="thumbnail"
-                      className="h-full w-full rounded-lg"
-                    />
-                  ) : (
-                    <Text>Failed to load thumbnail</Text>
-                  )}
-                  <Text className="absolute bottom-3 left-2 rounded-s p-1 text-xs color-white">
-                    {post.like_total} Likes
-                  </Text>
-                </Pressable>
-              ))
+              <>
+                {activeTab === 'all' && posts.map((post, index) => (
+                  <PostItem key={index} post={post} onPress={() => handlePostPress(post)} />
+                ))}
+                {activeTab === 'private' && privatePosts.map((post, index) => (
+                  <PostItem key={index} post={post} onPress={() => handlePostPress(post)} />
+                ))}
+                {activeTab === 'liked' && likedPosts.map((post, index) => (
+                  <PostItem key={index} post={post} onPress={() => handlePostPress(post)} />
+                ))}
+              </>
             )}
           </Box>
           {loadingMore && (
