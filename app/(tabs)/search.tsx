@@ -1,7 +1,12 @@
 import { Input, InputField, InputSlot } from "@/components/ui/input";
 import { Clock4, SearchIcon, X } from "lucide-react-native";
 import React, { useRef, useState } from "react";
-import { FlatList, StatusBar, TouchableOpacity } from "react-native";
+import {
+  FlatList,
+  StatusBar,
+  TouchableHighlight,
+  TouchableOpacity,
+} from "react-native";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 
 import { SafeAreaView } from "react-native";
@@ -24,21 +29,15 @@ import {
 import VideoItem from "@/components/VideoItem";
 import { Spinner } from "@/components/ui/spinner";
 import SearchService from "@/services/SearchService";
+import {
+  Avatar,
+  AvatarFallbackText,
+  AvatarImage,
+} from "@/components/ui/avatar";
 
 const height = StatusBar.currentHeight;
 
-const suggestions = [
-  "TikTok Dance Challenges",
-  "Lip Sync Videos",
-  "Comedy Skits",
-  "DIY and Craft Tutorials",
-  "Fitness and Workout Routines",
-  "Cooking and Recipe Videos",
-  "Fashion and Beauty Tips",
-  "Pet Videos",
-  "Travel Vlogs",
-  "Life Hacks",
-];
+const suggestions = ["Dance", "Trend", "Doki", "#trip"];
 
 const SuggestionItem = ({
   title,
@@ -72,12 +71,10 @@ const PreviewItem = ({
   onPress: VoidFunction;
 }) => {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      className="w-[calc(50%-16px)] max-w-[50%]">
+    <TouchableOpacity onPress={onPress} className="flex-1">
       <VStack>
         <Image
-          source={require("../../assets/static/thumbnail.png")}
+          source={{ uri: post.thumbnail_url }}
           className="h-[250px] w-full rounded-lg object-contain"
           alt={post.title}
         />
@@ -93,7 +90,7 @@ export default function SearchScreen() {
   const [query, setQuery] = React.useState("");
   const [tab, setTab] = React.useState<TABS>("videos");
   const [searchResults, setSearchResults] = useState<{
-    posts: (Post & { user: User })[];
+    posts: Post[];
     users: User[];
     topics: Topic[];
   }>({
@@ -117,6 +114,7 @@ export default function SearchScreen() {
     setSearchLoading(true);
     try {
       const results = await searchService.current.searchAll(query);
+      // @ts-ignore
       setSearchResults(results);
     } catch (error) {
       console.error("Search error:", error);
@@ -127,28 +125,57 @@ export default function SearchScreen() {
   };
 
   const renderResults = () => {
+    const hasResults = {
+      videos: searchResults.posts.length > 0,
+      users: searchResults.users.length > 0,
+      topics: searchResults.topics.length > 0,
+    }[tab];
+
+    if (!hasResults) {
+      return (
+        <Center className="w-full py-4">
+          <VStack space="md" className="items-center">
+            <Text className="text-lg font-semibold">No results found</Text>
+            <Text className="text-center text-gray-500">
+              We couldn't find any {tab} matching your search
+            </Text>
+          </VStack>
+        </Center>
+      );
+    }
+
     switch (tab) {
       case "videos":
-        return searchResults.posts.map((post) => (
-          <PreviewItem
-            post={post}
-            key={post.post_id}
-            onPress={() => {
-              setPreviewVideo({
-                show: true,
-                item: post,
-              });
+        return (
+          <FlatList
+            data={searchResults.posts}
+            numColumns={2}
+            columnWrapperStyle={{
+              justifyContent: "space-between",
+              gap: 16,
+              marginBottom: 16,
             }}
+            renderItem={({ item: post }) => (
+              <PreviewItem
+                post={post}
+                onPress={() => {
+                  setPreviewVideo({
+                    show: true,
+                    item: post,
+                  });
+                }}
+              />
+            )}
+            keyExtractor={(item) => item.post_id}
+            contentContainerStyle={{ paddingTop: 8 }}
           />
-        ));
+        );
       case "users":
         return searchResults.users.map((user) => (
-          // Add your UserItem component here
           <UserPreviewItem key={user.user_id} user={user} />
         ));
       case "topics":
         return searchResults.topics.map((topic) => (
-          // Add your TopicItem component here
           <TopicPreviewItem key={topic.topic_id} topic={topic} />
         ));
       default:
@@ -215,13 +242,13 @@ export default function SearchScreen() {
         />
       )}
 
-      {searchLoading && <Spinner />}
-
-      {!searchLoading && query.length > 0 && (
-        <VStack className="flex-row flex-wrap justify-between gap-4 pt-8">
-          {renderResults()}
-        </VStack>
+      {searchLoading && (
+        <Box className="py-4">
+          <Spinner />
+        </Box>
       )}
+
+      {!searchLoading && query.length > 0 && renderResults()}
 
       {previewVideo.show && previewVideo.item && (
         <Modal
@@ -234,7 +261,7 @@ export default function SearchScreen() {
             }));
           }}>
           <ModalContent className="bg-black p-0">
-            <ModalBody className="p-0">
+            <ModalBody className="fixed bottom-0 left-0 right-0 top-0 p-0">
               <VideoItem
                 item={previewVideo.item}
                 isActive={true}
@@ -249,3 +276,29 @@ export default function SearchScreen() {
     </SafeAreaView>
   );
 }
+
+const UserPreviewItem = ({ user }: { user: User }) => {
+  return (
+    <HStack className="w-full items-start gap-2 rounded-lg bg-white p-2 px-4 shadow-sm">
+      <Avatar size="md">
+        <AvatarFallbackText></AvatarFallbackText>
+        <AvatarImage
+          source={{
+            uri: user.avatar_url,
+          }}
+          alt="avatar"
+        />
+      </Avatar>
+      <VStack>
+        <Text className="text-lg font-semibold">
+          {user.first_name} {user.last_name}
+        </Text>
+        <Text className="text-sm text-gray-500">@{user.username}</Text>
+      </VStack>
+    </HStack>
+  );
+};
+
+const TopicPreviewItem = ({ topic }: { topic: Topic }) => {
+  return <Text>{topic.topic_name}</Text>;
+};

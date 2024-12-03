@@ -88,10 +88,7 @@ export default function CustomTabBar({
             {index === middleIndex && CenterButton}
             <Pressable
               key={route.key}
-              className={clsx(
-                "flex-1 items-center justify-center py-2",
-                Platform.OS === "web" && "cursor-pointer hover:opacity-80",
-              )}
+              className={clsx("flex-1 items-center justify-center py-2")}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={options.tabBarAccessibilityLabel}
