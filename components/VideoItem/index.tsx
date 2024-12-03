@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   TouchableWithoutFeedback,
   Dimensions,
@@ -24,6 +24,7 @@ import { memo } from "react";
 import CommentActionsheet from "./CommentActionsheet";
 import ActionTab from "./ActionTab";
 import LikeService from "@/services/LikeService";
+import DoubleTapHeart from "./DoubleTapHeart";
 
 const { height } = Dimensions.get("window");
 
@@ -39,8 +40,12 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   const [hearted, setHearted] = useState(false);
   const [showActionsheet, setShowActionsheet] = useState(false);
   const [commentLoading, setCommentLoading] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [likeTotal, setLikeTotal] = useState(item.like_total || 0);
+  const [userPaused, setUserPaused] = useState(false);
+  const [lastTap, setLastTap] = useState<number | null>(null);
+  const [tapTimeout, setTapTimeout] = useState<NodeJS.Timeout | null>(null);
+  const DOUBLE_TAP_DELAY = 300; // milliseconds
+  const [showHeart, setShowHeart] = useState(false);
 
   const auth = useAppSelector((state) => state.auth);
   const tabBarHeight = useTabBarHeight();
@@ -57,16 +62,73 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   const readyToPlay = status === "readyToPlay";
   const error = status === "error";
 
-  const handleTap = () => {
-    if (player.playing) player.pause();
-    else player.play();
+  const handleTap = React.useCallback(() => {
+    if (!player || !readyToPlay) return;
+
+    if (player.playing) {
+      player.pause();
+      setUserPaused(true);
+    } else {
+      player.play();
+      setUserPaused(false);
+    }
+  }, [player, readyToPlay]);
+
+  const handleToggleLike = async () => {
+    if (!auth.user) return;
+    const likeService = new LikeService();
+    const isNowLiked = await likeService.toggleLike(item.post_id, auth.user.id);
+    setHearted(isNowLiked);
+    setLikeTotal((prev: number) => (isNowLiked ? prev + 1 : prev - 1));
   };
+
+  const handlePress = useCallback(() => {
+    const now = Date.now();
+
+    if (lastTap && now - lastTap < DOUBLE_TAP_DELAY) {
+      // Double tap detected
+      if (tapTimeout) {
+        clearTimeout(tapTimeout);
+        setTapTimeout(null);
+      }
+      if (!hearted) {
+        handleToggleLike();
+      }
+      setLastTap(null);
+      setShowHeart(true);
+    } else {
+      // Potential single tap
+      setLastTap(now);
+
+      // Clear any existing timeout
+      if (tapTimeout) {
+        clearTimeout(tapTimeout);
+      }
+
+      // Set new timeout for single tap
+      const timeout = setTimeout(() => {
+        handleTap();
+        setLastTap(null);
+      }, DOUBLE_TAP_DELAY);
+
+      setTapTimeout(timeout);
+    }
+  }, [lastTap, handleTap, handleToggleLike, player, tapTimeout]);
+
+  useEffect(() => {
+    return () => {
+      if (tapTimeout) {
+        clearTimeout(tapTimeout);
+      }
+    };
+  }, [tapTimeout]);
 
   useEffect(() => {
     if (!player || !readyToPlay) return;
     const handlePlayback = async () => {
       if (isActive && !player.playing) {
         player.play();
+        setUserPaused(false);
       } else {
         player.pause();
       }
@@ -111,27 +173,6 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   }, [owner, item.user_id]);
 
   useEffect(() => {
-    const keyboardWillShow = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-      },
-    );
-
-    const keyboardWillHide = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => {
-        setKeyboardHeight(0);
-      },
-    );
-
-    return () => {
-      keyboardWillShow.remove();
-      keyboardWillHide.remove();
-    };
-  }, []);
-
-  useEffect(() => {
     const checkLikeStatus = async () => {
       if (!auth.user?.id) return;
       try {
@@ -152,40 +193,53 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   return (
     <>
       <Box style={{ height: contentHeight }} className="relative w-full">
-        <TouchableWithoutFeedback onPress={handleTap} className="fixed inset-0">
-          <Box style={{ height: "100%", width: "100%" }}>
-            <VideoView
-              player={player}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-              nativeControls={false}
+        <Box style={{ height: "100%", width: "100%" }} className="relative">
+          <VideoView
+            player={player}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            nativeControls={false}
+          />
+
+          <TouchableWithoutFeedback onPress={handlePress}>
+            <Box
+              className="absolute inset-0 z-10"
+              style={{
+                backgroundColor: "transparent",
+                height: "100%",
+                width: "100%",
+              }}
             />
+          </TouchableWithoutFeedback>
 
-            {!readyToPlay && !error && (
-              <Center className="absolute inset-0 bg-black/50">
-                <Spinner color="white" />
-              </Center>
-            )}
+          {!readyToPlay && !error && (
+            <Center className="absolute inset-0 bg-black/50">
+              <Spinner color="white" />
+            </Center>
+          )}
 
-            {error && (
-              <Center className="absolute inset-0 bg-black/50">
-                <Text className="text-white">Failed to load video</Text>
-                <Text className="text-red">{error}</Text>
-              </Center>
-            )}
+          {error && (
+            <Center className="absolute inset-0 bg-black/50">
+              <Text className="text-white">Failed to load video</Text>
+              <Text className="text-red">{error}</Text>
+            </Center>
+          )}
 
-            {readyToPlay && !isPlaying && (
-              <Center className="absolute left-1/2 top-1/2 -ml-[30px] -mt-[30px] opacity-50">
-                <Play
-                  color="#fff"
-                  fill="#fff"
-                  className="border-white/50 bg-white/30 backdrop-blur-lg"
-                  size={60}
-                />
-              </Center>
-            )}
-          </Box>
-        </TouchableWithoutFeedback>
+          {readyToPlay && !isPlaying && userPaused && (
+            <Center className="absolute left-1/2 top-1/2 -ml-[30px] -mt-[30px] opacity-50">
+              <Play
+                color="#fff"
+                fill="#fff"
+                className="border-white/50 bg-white/30 backdrop-blur-lg"
+                size={60}
+              />
+            </Center>
+          )}
+
+          {showHeart && (
+            <DoubleTapHeart onAnimationEnd={() => setShowHeart(false)} />
+          )}
+        </Box>
 
         {onClosed && (
           <Button
@@ -210,6 +264,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
           setLikeTotal={setLikeTotal}
           onCommentPress={() => setShowActionsheet(true)}
           videoUrl={item.video || ""}
+          onToggleLike={handleToggleLike}
         />
 
         {/* Bottom tab */}

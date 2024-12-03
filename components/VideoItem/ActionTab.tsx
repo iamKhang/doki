@@ -30,6 +30,7 @@ interface ActionTabProps {
   setLikeTotal: React.Dispatch<React.SetStateAction<number>>;
   onCommentPress: () => void;
   videoUrl: string;
+  onToggleLike: () => void;
 }
 
 const ActionTab = ({
@@ -41,22 +42,11 @@ const ActionTab = ({
   setLikeTotal,
   onCommentPress,
   videoUrl,
+  onToggleLike,
 }: ActionTabProps) => {
   const auth = useAppSelector((state) => state.auth);
   const likeService = new LikeService();
   const user = auth.user;
-
-  const handleLikePress = async () => {
-    if (!user) return;
-
-    try {
-      const isNowLiked = await likeService.toggleLike(postId, user.id);
-      setHearted(isNowLiked);
-      setLikeTotal((prev: number) => (isNowLiked ? prev + 1 : prev - 1));
-    } catch (error) {
-      console.error("Error toggling like:", error);
-    }
-  };
 
   const handleShare = async () => {
     try {
@@ -105,7 +95,7 @@ const ActionTab = ({
 
   return (
     <VStack
-      className={clsx("absolute bottom-12 right-4 items-center gap-4", {
+      className={clsx("absolute bottom-12 right-4 z-20 items-center gap-4", {
         "bottom-24": Platform.OS === "ios",
       })}>
       <Avatar size="md" className="mb-8">
@@ -122,7 +112,7 @@ const ActionTab = ({
         <AvatarBadge />
       </Avatar>
 
-      <TouchableWithoutFeedback onPress={handleLikePress}>
+      <TouchableWithoutFeedback onPress={onToggleLike}>
         <VStack style={{ alignItems: "center" }}>
           {hearted ? (
             <ReadHeart width={35} height={35} />
