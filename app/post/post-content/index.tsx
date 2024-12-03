@@ -1,6 +1,12 @@
 // components/VideoPostCreation.tsx
 import React, { useEffect, useState } from "react";
-import { TouchableOpacity, ScrollView, View, Alert } from "react-native";
+import {
+  TouchableOpacity,
+  ScrollView,
+  View,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { Box } from "@/components/ui/box";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
@@ -28,6 +34,9 @@ import PostService from "@/services/PostService";
 import PostTopicService from "@/services/PostTopicService";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
+import { useRouter } from "expo-router";
+import Slider from "@react-native-community/slider";
+import { Video, AVPlaybackStatus } from "expo-av";
 
 async function generateThumbnail(videoUri: string, timeInSeconds: number) {
   try {
@@ -42,6 +51,7 @@ async function generateThumbnail(videoUri: string, timeInSeconds: number) {
 }
 
 export default function VideoPostCreation() {
+  const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [availableTopics, setAvailableTopics] = useState<Topic[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<Topic[]>([]);
@@ -54,6 +64,10 @@ export default function VideoPostCreation() {
   const [loading, setLoading] = useState(true);
   const { videoUri } = params;
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
+  const [isPrivate, setIsPrivate] = useState(true);
+  const [thumbnailTime, setThumbnailTime] = useState(1);
+  const [videoDuration, setVideoDuration] = useState(30);
+  const [isEditingThumbnail, setIsEditingThumbnail] = useState(false);
 
   useEffect(() => {
     const loadInitialTopics = async () => {
@@ -67,6 +81,30 @@ export default function VideoPostCreation() {
 
     loadInitialTopics();
   }, []);
+
+  useEffect(() => {
+    const getVideoDuration = async () => {
+      try {
+        const { sound } = await Video.createAsync(
+          { uri: params.videoUri },
+          {},
+          false,
+        );
+        const status = await sound.getStatusAsync();
+        if ("durationMillis" in status) {
+          const duration = status.durationMillis
+            ? status.durationMillis / 1000
+            : 3;
+          setVideoDuration(duration);
+        }
+      } catch (error) {
+        console.warn("Không thể lấy thời lượng video:", error);
+        setVideoDuration(3);
+      }
+    };
+
+    getVideoDuration();
+  }, [params.videoUri]);
 
   const handleTopicSelection = (topicId: string) => {
     if (selectedTopics.some((t) => t.topic_id === topicId)) {
@@ -153,17 +191,47 @@ export default function VideoPostCreation() {
         selectedTopics,
       );
 
-      // Thông báo thành công
-      Alert.alert(
-        "Thành công",
-        "Video và bài đăng đã được tải lên thành công!",
-      );
+      // Sau khi lưu post và topics thành công
+      Alert.alert("Thành công", "Video đã được đăng thành công!", [
+        {
+          text: "OK",
+          onPress: () => {
+            router.replace("/(tabs)/profile");
+          },
+        },
+      ]);
     } catch (error: any) {
-      // Sử dụng kiểu `any` để lấy thông báo lỗi chi tiết
       console.error("Error in post submission:", error);
       Alert.alert("Lỗi", error.message || "Đã xảy ra lỗi khi đăng video.");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleChangeThumbnail = async () => {
+    try {
+      const thumbnail = await generateThumbnail(params.videoUri, 1);
+      if (thumbnail) {
+        setThumbnailUri(thumbnail);
+      }
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể tạo ảnh bìa mới");
+    }
+  };
+
+  const togglePrivacy = () => {
+    setIsPrivate(!isPrivate);
+  };
+
+  const handleSliderChange = async (value: number) => {
+    setThumbnailTime(value);
+    const newThumbnail = await generateThumbnail(params.videoUri, value);
+    if (newThumbnail) {
+      setThumbnailUri(newThumbnail);
     }
   };
 
@@ -173,8 +241,8 @@ export default function VideoPostCreation() {
       style={{ paddingTop: Constants.statusBarHeight }}>
       <ScrollView className="flex-1">
         <VStack className="space-y-4 p-4" space="sm">
-          <TouchableOpacity>
-            <ChevronLeft size={28} color="#000" />
+          <TouchableOpacity onPress={handleBack}>
+            <ChevronLeft size={28} color="#D91656" />
           </TouchableOpacity>
 
           <HStack className="space-x-4" space="2xl">
@@ -187,71 +255,65 @@ export default function VideoPostCreation() {
               <TextareaInput
                 value={description}
                 onChangeText={setDescription}
-                placeholder="Your text goes here..."
+                placeholder="Mô tả video của bạn..."
               />
             </Textarea>
 
             <Box className="relative h-36 w-28 overflow-hidden rounded-lg">
               {thumbnailUri && (
-                <Image
-                  source={{ uri: thumbnailUri }}
-                  alt="Video preview"
-                  className="h-full w-full flex-1 object-cover"
-                  resizeMode="cover"
-                />
+                <>
+                  <Image
+                    source={{ uri: thumbnailUri }}
+                    alt="Video preview"
+                    className="h-full w-full flex-1 object-cover"
+                    resizeMode="cover"
+                  />
+                  {!isEditingThumbnail ? (
+                    <TouchableOpacity
+                      onPress={() => setIsEditingThumbnail(true)}
+                      className="absolute bottom-0 left-0 right-0 bg-black/50 p-2">
+                      <Text className="text-center text-xs text-white">
+                        Chỉnh sửa ảnh bìa
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <VStack className="absolute bottom-0 left-0 right-0 bg-black/50 p-2">
+                      <HStack className="mb-1 justify-between">
+                        <Text className="text-xs text-white">
+                          {Math.floor(thumbnailTime)}s
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => setIsEditingThumbnail(false)}>
+                          <Text className="text-xs text-white">Xong</Text>
+                        </TouchableOpacity>
+                      </HStack>
+                      <Slider
+                        style={{ width: "100%", height: 20 }}
+                        minimumValue={0}
+                        maximumValue={videoDuration}
+                        value={thumbnailTime}
+                        onValueChange={handleSliderChange}
+                        minimumTrackTintColor="#FFFFFF"
+                        maximumTrackTintColor="#000000"
+                        thumbTintColor="#D91656"
+                      />
+                    </VStack>
+                  )}
+                </>
               )}
-              <VStack className="absolute bottom-0 left-0 right-0 bg-black/50 p-2">
-                <Text className="text-xs text-white">Sửa ảnh bìa</Text>
-              </VStack>
             </Box>
           </HStack>
 
-          {/* Quick Actions */}
-          <HStack className="" space="md">
-            <Button
-              variant="outline"
-              className="flex-row items-center space-x-1 rounded-full px-4 py-2">
-              <Hash size={16} />
-              <Text>Hashtag</Text>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-row items-center space-x-1 rounded-full px-4 py-2">
-              <AtSign size={16} />
-              <Text>Nhắc đến</Text>
-            </Button>
-          </HStack>
-
-          {/* Location */}
-          <TouchableOpacity>
+          {/* Privacy Settings */}
+          <TouchableOpacity onPress={togglePrivacy}>
             <HStack className="items-center justify-between border-b border-gray-200 py-4">
               <HStack className="items-center space-x-2">
-                <MapPin size={24} />
-                <Text className="text-base">Vị trí</Text>
+                <Users size={24} color="#D91656" />
+                <Text className="text-base">Ai có thể xem video này</Text>
               </HStack>
-              <Text className="text-gray-600">Hồ Chí Minh</Text>
-            </HStack>
-          </TouchableOpacity>
-
-          {/* Add Link */}
-          <TouchableOpacity>
-            <HStack className="items-center justify-between border-b border-gray-200 py-4">
-              <HStack className="items-center space-x-2">
-                <Link2 size={24} />
-                <Text className="text-base">Thêm liên kết</Text>
-              </HStack>
-            </HStack>
-          </TouchableOpacity>
-
-          {/* Privacy */}
-          <TouchableOpacity>
-            <HStack className="items-center justify-between border-b border-gray-200 py-4">
-              <HStack className="items-center space-x-2">
-                <Users size={24} />
-                <Text className="text-base">
-                  Follower có thể xem bài đăng này
-                </Text>
-              </HStack>
+              <Text className="text-gray-600">
+                {isPrivate ? "Chỉ mình tôi" : "Mọi người"}
+              </Text>
             </HStack>
           </TouchableOpacity>
 
@@ -283,10 +345,9 @@ export default function VideoPostCreation() {
                   <Button
                     key={topic.topic_id}
                     variant="outline"
-                    className="flex-row items-center space-x-1 rounded-full px-4 py-2"
+                    className="flex-row items-center space-x-1 rounded-full border-blue-500 px-4 py-2"
                     onPress={() => handleTopicSelection(topic.topic_id)}>
-                    <Hash size={16} />
-                    <Text>{topic.topic_name}</Text>
+                    <Text className="text-blue-500">{topic.topic_name}</Text>
                   </Button>
                 ))}
             </HStack>
@@ -296,14 +357,15 @@ export default function VideoPostCreation() {
 
       {/* Bottom Actions */}
       <HStack className="border-t border-gray-200 p-4">
-        <Button variant="outline" className="mr-2 flex-1">
-          <Text>Nháp</Text>
-        </Button>
         <Button
-          className="ml-2 flex-1 bg-red-500"
+          className="ml-2 flex-1 bg-[#D91656]"
           onPress={handlePostSubmission}
           disabled={uploading}>
-          <Text className="text-white">Đăng</Text>
+          {uploading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text className="text-white">Đăng</Text>
+          )}
         </Button>
       </HStack>
     </Box>

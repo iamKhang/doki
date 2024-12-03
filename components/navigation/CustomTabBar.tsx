@@ -19,7 +19,7 @@ export default function CustomTabBar({
   const tabBarHeight = useTabBarHeight();
 
   const tabsRoutes = state.routes.filter((route) =>
-    ["index", "search", "notification", "profile"].includes(route.name),
+    ["index", "search", "notification", "profile/index"].includes(route.name),
   );
 
   const middleIndex = Math.floor(tabsRoutes.length / 2);
