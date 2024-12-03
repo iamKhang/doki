@@ -99,4 +99,16 @@ export default class PostService implements IPostService {
     if (error) throw error;
     return data as Post[];
   }
+
+  async getLikeStatus(postId: string, userId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from("likes")
+      .select("*")
+      .eq("post_id", postId)
+      .eq("user_id", userId)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error; // Ignore not found error
+    return !!data;
+  }
 }
