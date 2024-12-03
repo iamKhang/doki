@@ -5,14 +5,34 @@ import React, {
   useState,
   useMemo,
 } from "react";
-import { FlatList, Dimensions, ActivityIndicator, View } from "react-native";
+import {
+  FlatList,
+  Dimensions,
+  ActivityIndicator,
+  View,
+  Platform,
+} from "react-native";
 import { Box } from "@/components/ui/box";
 import VideoItem from "@/components/VideoItem";
 import PostService from "@/services/PostService";
 import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 import { useIsFocused } from "@react-navigation/native";
+import { memo } from "react";
 
 const { height: WINDOW_HEIGHT } = Dimensions.get("window");
+
+const getItemLayout = (_: any, index: number, height: number) => ({
+  length: height,
+  offset: height * index,
+  index,
+});
+
+const MemoizedVideoItem = memo(VideoItem, (prevProps, nextProps) => {
+  return (
+    prevProps.item.post_id === nextProps.item.post_id &&
+    prevProps.isActive === nextProps.isActive
+  );
+});
 
 export default function HomePage() {
   const tabBarHeight = useTabBarHeight();
@@ -88,22 +108,23 @@ export default function HomePage() {
     },
   ]);
 
-  const getItemLayout = useCallback(
-    (_: any, index: number) => ({
-      length: contentHeight,
-      offset: contentHeight * index,
-      index,
-    }),
+  const keyExtractor = useCallback((item: Post) => item.post_id.toString(), []);
+
+  const memoizedGetItemLayout = useCallback(
+    (_: any, index: number) => getItemLayout(_, index, contentHeight),
     [contentHeight],
   );
 
-  const keyExtractor = useCallback((item: Post) => item.post_id.toString(), []);
-
   const renderItem = useCallback(
     ({ item, index }: { item: Post; index: number }) => (
-      <VideoItem item={item} isActive={index === activeIndex && isFocused} />
+      <Box style={{ height: contentHeight }}>
+        <MemoizedVideoItem
+          item={item}
+          isActive={index === activeIndex && isFocused}
+        />
+      </Box>
     ),
-    [activeIndex, isFocused],
+    [activeIndex, isFocused, contentHeight],
   );
 
   const ListFooterComponent = useCallback(
@@ -122,34 +143,45 @@ export default function HomePage() {
     }
   }, [fetchPosts, isLoading, hasMore]);
 
+  // Add momentum scroll handling
+  const onMomentumScrollEnd = useCallback(
+    (event: any) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      const newIndex = Math.round(offsetY / contentHeight);
+      setActiveIndex(newIndex);
+    },
+    [contentHeight],
+  );
+
   return (
-    <Box style={{ flex: 1 }}>
-      <FlatList
-        ref={flatListRef}
-        data={posts}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
-        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
-        showsVerticalScrollIndicator={false}
-        decelerationRate="fast"
-        snapToInterval={contentHeight}
-        snapToAlignment="start"
-        scrollEventThrottle={16}
-        maxToRenderPerBatch={3}
-        initialNumToRender={2}
-        windowSize={3}
-        removeClippedSubviews={true}
-        ListFooterComponent={ListFooterComponent}
-        updateCellsBatchingPeriod={50}
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.5}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-          autoscrollToTopThreshold: 10,
-        }}
-        style={{ flex: 1 }}
-      />
-    </Box>
+    <FlatList
+      ref={flatListRef}
+      data={posts}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      getItemLayout={memoizedGetItemLayout}
+      viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
+      showsVerticalScrollIndicator={false}
+      decelerationRate={Platform.OS === "ios" ? 0 : 0.98}
+      snapToInterval={contentHeight}
+      snapToAlignment="start"
+      disableIntervalMomentum={true}
+      pagingEnabled={true}
+      scrollEventThrottle={16}
+      onMomentumScrollEnd={onMomentumScrollEnd}
+      maxToRenderPerBatch={2}
+      initialNumToRender={1}
+      windowSize={2}
+      removeClippedSubviews={Platform.OS === "android"}
+      updateCellsBatchingPeriod={75}
+      ListFooterComponent={ListFooterComponent}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.5}
+      maintainVisibleContentPosition={{
+        minIndexForVisible: 0,
+        autoscrollToTopThreshold: 10,
+      }}
+      style={{ flex: 1 }}
+    />
   );
 }
