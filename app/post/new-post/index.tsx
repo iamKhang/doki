@@ -86,6 +86,14 @@ export default function CameraScreen() {
     }
   };
 
+  const handleBack = () => {
+    if (isRecording) {
+      cameraRef.current?.stopRecording();
+      setIsRecording(false);
+    }
+    router.back();
+  };
+
   if (!permission) {
     // Đang tải quyền truy cập camera
     return <View />;
@@ -125,7 +133,7 @@ export default function CameraScreen() {
             <TouchableOpacity className="p-2">
               <Text className="text-lg text-white">Thêm âm thanh</Text>
             </TouchableOpacity>
-            <TouchableOpacity className="p-2">
+            <TouchableOpacity className="p-2" onPress={handleBack}>
               <Ionicons name="close" size={24} color="white" />
             </TouchableOpacity>
           </View>

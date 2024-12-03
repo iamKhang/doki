@@ -63,14 +63,20 @@ export default class PostService implements IPostService {
     page: number,
     pageSize: number,
     user: User,
+    isPrivate?: boolean,
   ): Promise<Post[]> {
-    const { data, error } = await supabase
+    let query = supabase
       .from("posts")
       .select("*")
       .eq("user_id", user.user_id)
       .order("created_at", { ascending: false })
       .range(page * pageSize, (page + 1) * pageSize - 1);
 
+    if (isPrivate !== undefined) {
+      query = query.eq("private", isPrivate);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data as Post[];
   }
