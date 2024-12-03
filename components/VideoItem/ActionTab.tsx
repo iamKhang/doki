@@ -18,6 +18,8 @@ import ReadHeart from "./svgs/red-heart.svg";
 import Share from "./svgs/share.svg";
 import LikeService from "@/services/LikeService";
 import { useAppSelector } from "@/store/hooks";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system";
 
 interface ActionTabProps {
   owner: User | null;
@@ -27,6 +29,7 @@ interface ActionTabProps {
   likeTotal: number;
   setLikeTotal: React.Dispatch<React.SetStateAction<number>>;
   onCommentPress: () => void;
+  videoUrl: string;
 }
 
 const ActionTab = ({
@@ -37,6 +40,7 @@ const ActionTab = ({
   likeTotal,
   setLikeTotal,
   onCommentPress,
+  videoUrl,
 }: ActionTabProps) => {
   const auth = useAppSelector((state) => state.auth);
   const likeService = new LikeService();
@@ -54,9 +58,54 @@ const ActionTab = ({
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const isAvailable = await Sharing.isAvailableAsync();
+
+      if (isAvailable && videoUrl) {
+        // Show some loading state if needed
+
+        // Generate a temporary file path
+        const fileExt = videoUrl.split(".").pop() || "mp4";
+        const localUri = `${FileSystem.cacheDirectory}temp_video.${fileExt}`;
+
+        // Download the file
+        const downloadResumable = FileSystem.createDownloadResumable(
+          videoUrl,
+          localUri,
+          {},
+          (downloadProgress) => {
+            const progress =
+              downloadProgress.totalBytesWritten /
+              downloadProgress.totalBytesExpectedToWrite;
+            // You can use this progress value to show a progress indicator if needed
+          },
+        );
+
+        const result = await downloadResumable.downloadAsync();
+        if (!result) throw new Error("Download failed");
+
+        // Share the local file
+        await Sharing.shareAsync(result.uri, {
+          dialogTitle: "Share this video",
+          mimeType: "video/mp4",
+          UTI: "public.movie",
+        });
+
+        // Clean up
+        await FileSystem.deleteAsync(result.uri, { idempotent: true });
+      } else {
+        console.log("Sharing is not available on this platform");
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      // You might want to show an error message to the user here
+    }
+  };
+
   return (
     <VStack
-      className={clsx("absolute bottom-8 right-4 items-center gap-4", {
+      className={clsx("absolute bottom-12 right-4 items-center gap-4", {
         "bottom-24": Platform.OS === "ios",
       })}>
       <Avatar size="md" className="mb-8">
@@ -80,7 +129,7 @@ const ActionTab = ({
           ) : (
             <Heart width={35} height={35} />
           )}
-          <Text className="text-white">{formatNumber(likeTotal)}</Text>
+          <Text className="text-xs text-white">{formatNumber(likeTotal)}</Text>
         </VStack>
       </TouchableWithoutFeedback>
 
@@ -90,13 +139,7 @@ const ActionTab = ({
         </VStack>
       </TouchableWithoutFeedback>
 
-      <TouchableWithoutFeedback>
-        <VStack style={{ alignItems: "center" }}>
-          <Bookmark fill="white" color="white" size={30} />
-        </VStack>
-      </TouchableWithoutFeedback>
-
-      <TouchableWithoutFeedback>
+      <TouchableWithoutFeedback onPress={handleShare}>
         <VStack style={{ alignItems: "center" }}>
           <Share width={32} height={32} />
         </VStack>

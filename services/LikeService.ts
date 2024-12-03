@@ -11,7 +11,7 @@ export default class LikeService {
       .select("*")
       .eq("post_id", postId)
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (existingLike) {
       // Unlike
@@ -25,13 +25,11 @@ export default class LikeService {
       return false;
     } else {
       // Like
-      const { error: insertError } = await supabase
-        .from("likes")
-        .insert({
-          post_id: postId,
-          user_id: userId,
-          like_at: new Date().toISOString(),
-        });
+      const { error: insertError } = await supabase.from("likes").insert({
+        post_id: postId,
+        user_id: userId,
+        like_at: new Date().toISOString(),
+      });
 
       if (insertError) throw insertError;
       return true;
@@ -44,7 +42,7 @@ export default class LikeService {
       .select("*")
       .eq("post_id", postId)
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     return !!data;
   }

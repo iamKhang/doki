@@ -1,6 +1,6 @@
 import { Input, InputField, InputSlot } from "@/components/ui/input";
 import { Clock4, SearchIcon, X } from "lucide-react-native";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { FlatList, StatusBar, TouchableOpacity } from "react-native";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/modal";
 import VideoItem from "@/components/VideoItem";
 import { Spinner } from "@/components/ui/spinner";
+import SearchService from "@/services/SearchService";
 
 const height = StatusBar.currentHeight;
 
@@ -86,13 +87,21 @@ const PreviewItem = ({
   );
 };
 
-type TABS = "videos" | "categories" | "users";
+type TABS = "videos" | "users" | "topics";
 
 export default function SearchScreen() {
   const [query, setQuery] = React.useState("");
   const [tab, setTab] = React.useState<TABS>("videos");
-  const [posts, setPosts] = React.useState<Post[]>([]);
-  const postService = useRef(new PostService());
+  const [searchResults, setSearchResults] = useState<{
+    posts: (Post & { user: User })[];
+    users: User[];
+    topics: Topic[];
+  }>({
+    posts: [],
+    users: [],
+    topics: [],
+  });
+  const searchService = useRef(new SearchService());
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [previewVideo, setPreviewVideo] = React.useState<{
     show: boolean;
@@ -103,11 +112,48 @@ export default function SearchScreen() {
   });
 
   const handleSearch = async () => {
-    setSearchLoading(true);
-    const results = await postService.current.search(query);
+    if (!query.trim()) return;
 
-    setPosts(results);
-    setSearchLoading(false);
+    setSearchLoading(true);
+    try {
+      const results = await searchService.current.searchAll(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Search error:", error);
+      // Handle error appropriately
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const renderResults = () => {
+    switch (tab) {
+      case "videos":
+        return searchResults.posts.map((post) => (
+          <PreviewItem
+            post={post}
+            key={post.post_id}
+            onPress={() => {
+              setPreviewVideo({
+                show: true,
+                item: post,
+              });
+            }}
+          />
+        ));
+      case "users":
+        return searchResults.users.map((user) => (
+          // Add your UserItem component here
+          <UserPreviewItem key={user.user_id} user={user} />
+        ));
+      case "topics":
+        return searchResults.topics.map((topic) => (
+          // Add your TopicItem component here
+          <TopicPreviewItem key={topic.topic_id} topic={topic} />
+        ));
+      default:
+        return null;
+    }
   };
 
   return (
@@ -115,7 +161,7 @@ export default function SearchScreen() {
       {/* Header */}
       <VStack className="fixed left-0 right-0 top-0 h-fit border-b border-gray-50">
         <HStack className="mb-4 gap-4">
-          <Input className="w-full flex-1 rounded-lg px-4">
+          <Input className="w-full flex-1 items-center rounded-lg px-4">
             <InputSlot>
               <SearchIcon size={22} color="black" />
             </InputSlot>
@@ -123,7 +169,8 @@ export default function SearchScreen() {
               placeholder="Search video..."
               value={query}
               onChangeText={setQuery}
-              onSubmitEditing={handleSearch} // This will handle the Enter key press on mobile
+              onSubmitEditing={handleSearch}
+              className="my-0 h-full py-0"
             />
             {query.length > 0 && (
               <InputSlot onPress={() => setQuery("")}>
@@ -137,7 +184,7 @@ export default function SearchScreen() {
           </Button>
         </HStack>
         <HStack className="w-full justify-start">
-          {(["videos", "categories", "users"] as TABS[]).map((item) => (
+          {(["videos", "users", "topics"] as TABS[]).map((item) => (
             <Button
               key={item}
               className={clsx("px-4 text-black", {
@@ -170,26 +217,9 @@ export default function SearchScreen() {
 
       {searchLoading && <Spinner />}
 
-      {!searchLoading && query.length > 0 && posts.length == 0 && (
-        <Center className="pt-8">
-          <Text>Not found</Text>
-        </Center>
-      )}
-
-      {!searchLoading && query.length > 0 && posts.length != 0 && (
+      {!searchLoading && query.length > 0 && (
         <VStack className="flex-row flex-wrap justify-between gap-4 pt-8">
-          {posts.map((post) => (
-            <PreviewItem
-              post={post}
-              key={post.post_id}
-              onPress={() => {
-                setPreviewVideo({
-                  show: true,
-                  item: post,
-                });
-              }}
-            />
-          ))}
+          {renderResults()}
         </VStack>
       )}
 

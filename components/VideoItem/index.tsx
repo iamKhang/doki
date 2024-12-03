@@ -3,34 +3,15 @@ import {
   TouchableWithoutFeedback,
   Dimensions,
   Platform,
-  ScrollView,
-  KeyboardAvoidingView,
-  TouchableNativeFeedback,
   Keyboard,
 } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Box } from "@/components/ui/box";
-import { Bookmark, Play, Send, Share2, X } from "lucide-react-native";
+import { Play, X } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import {
-  Avatar,
-  AvatarBadge,
-  AvatarFallbackText,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import { formatNumber } from "@/utils/Format";
 import clsx from "clsx";
 import { Center } from "@/components/ui/center";
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicatorWrapper,
-  ActionsheetItem,
-  ActionsheetItemText,
-} from "@/components/ui/actionsheet";
-import CommentItem from "@/components/CommentItem";
 import { Button } from "../ui/button";
 import CommentService, { ExtendedComment } from "@/services/CommentService";
 import UserService from "@/services/UserService";
@@ -38,14 +19,7 @@ import { HStack } from "../ui/hstack";
 import { Spinner } from "../ui/spinner";
 import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 import { useEvent } from "expo";
-import Chat from "./svgs/chat.svg";
-import Heart from "./svgs/heart.svg";
-import ReadHeart from "./svgs/red-heart.svg";
-import Share from "./svgs/share.svg";
-import { isLoaded } from "expo-font";
-import { Input, InputField, InputIcon, InputSlot } from "../ui/input";
 import { useAppSelector } from "@/store/hooks";
-import { TouchableHighlight } from "react-native-gesture-handler";
 import { memo } from "react";
 import CommentActionsheet from "./CommentActionsheet";
 import ActionTab from "./ActionTab";
@@ -235,6 +209,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
           likeTotal={likeTotal}
           setLikeTotal={setLikeTotal}
           onCommentPress={() => setShowActionsheet(true)}
+          videoUrl={item.video || ""}
         />
 
         {/* Bottom tab */}
