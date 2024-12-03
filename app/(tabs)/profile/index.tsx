@@ -20,7 +20,7 @@ import {
   ShoppingBasket,
   UserRoundPlus,
 } from "lucide-react-native";
-import { Text, TouchableHighlight } from "react-native";
+import { Text, TouchableHighlight, TouchableOpacity } from "react-native";
 import {
   GestureHandlerRootView,
   ScrollView,
@@ -164,6 +164,14 @@ export default function ProfilePage() {
     setLoading(false);
   };
 
+  const handleEditProfile = () => {
+    router.push("/profile/edit-profile");
+  };
+
+  const handleShareProfile = () => {
+    router.push("/profile/share-profile");
+  };
+
   return (
     <GestureHandlerRootView className="flex-1">
       <ScrollView
@@ -205,13 +213,11 @@ export default function ProfilePage() {
               </VStack>
             </HStack>
             <HStack space="sm">
-              <Button
-                variant="outline"
-                onPress={() => router.push("/(tabs)/profile/edit-profile")}>
+              <Button variant="outline" onPress={handleEditProfile}>
                 <ButtonText>Sửa hồ sơ</ButtonText>
               </Button>
-              <Button variant="outline">
-                <ButtonText>Chia sẻ hồ sơ </ButtonText>
+              <Button variant="outline" onPress={handleShareProfile}>
+                <ButtonText>Chia sẻ hồ sơ</ButtonText>
               </Button>
               <Button variant="outline">
                 <ButtonText>
