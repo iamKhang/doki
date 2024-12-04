@@ -226,16 +226,20 @@ export default function ProfilePage() {
   };
 
   const handleEditProfile = () => {
-    router.push("/profile/edit-profile");
+    router.push("/profile/edit");
   };
 
   const handleShareProfile = () => {
     router.push({
-      pathname: "/profile/share-profile",
+      pathname: "/(tabs)/profile/share",
       params: {
         id: auth.appUser?.user_id,
       },
     });
+  };
+
+  const handleCloseModal = () => {
+    setPreviewVideo({ show: false, item: null });
   };
 
   return (
@@ -406,15 +410,13 @@ export default function ProfilePage() {
           <Modal
             size="full"
             isOpen={previewVideo.show}
-            onClose={() => setPreviewVideo({ show: false, item: null })}>
+            onClose={handleCloseModal}>
             <ModalContent className="bg-black p-0">
               <ModalBody className="p-0">
                 <VideoItem
                   item={previewVideo.item}
                   isActive={true}
-                  onClosed={() =>
-                    setPreviewVideo((prev) => ({ ...prev, show: false }))
-                  }
+                  onClosed={handleCloseModal}
                 />
               </ModalBody>
             </ModalContent>

@@ -113,7 +113,7 @@ export default function UserProfileScreen() {
 
   const handleShare = async () => {
     router.push({
-      pathname: "/profile/share-profile",
+      pathname: "/(tabs)/profile/share",
       params: {
         id: id,
       },

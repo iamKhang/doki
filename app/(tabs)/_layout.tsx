@@ -68,7 +68,6 @@ export default function TabLayout() {
               style={{ width: color.size, height: color.size }}
             />
           ),
-          href: "/profile/me",
         }}
       />
     </Tabs>
