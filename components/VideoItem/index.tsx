@@ -324,4 +324,4 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   );
 };
 
-export default memo(VideoItem);
+export default VideoItem;

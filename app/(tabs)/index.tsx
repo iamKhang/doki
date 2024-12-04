@@ -13,11 +13,11 @@ import {
   Platform,
 } from "react-native";
 import { Box } from "@/components/ui/box";
-import VideoItem from "@/components/VideoItem";
 import PostService from "@/services/PostService";
 import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 import { useIsFocused } from "@react-navigation/native";
 import { memo } from "react";
+import VideoItem from "@/components/VideoItem";
 
 const { height: WINDOW_HEIGHT } = Dimensions.get("window");
 
@@ -27,12 +27,17 @@ const getItemLayout = (_: any, index: number, height: number) => ({
   index,
 });
 
-const MemoizedVideoItem = memo(VideoItem, (prevProps, nextProps) => {
-  return (
-    prevProps.item.post_id === nextProps.item.post_id &&
-    prevProps.isActive === nextProps.isActive
-  );
-});
+const MemoizedVideoItem = memo(
+  ({ item, isActive }: { item: Post; isActive: boolean }) => (
+    <VideoItem item={item} isActive={isActive} />
+  ),
+  (prevProps, nextProps) => {
+    return (
+      prevProps.item.post_id === nextProps.item.post_id &&
+      prevProps.isActive === nextProps.isActive
+    );
+  },
+);
 
 export default function HomePage() {
   const tabBarHeight = useTabBarHeight();
