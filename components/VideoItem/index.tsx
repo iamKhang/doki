@@ -52,6 +52,10 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   const contentHeight = height - tabBarHeight;
   const player = useVideoPlayer(item.video || null, (player) => {
     player.loop = true;
+    if (Platform.OS === "ios") {
+      player.staysActiveInBackground = false;
+      player.audioMixingMode = "auto";
+    }
   });
   const { isPlaying } = useEvent(player, "playingChange", {
     isPlaying: player.playing,
@@ -61,16 +65,27 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
   });
   const readyToPlay = status === "readyToPlay";
   const error = status === "error";
-
   const handleTap = React.useCallback(() => {
+    console.log("handleTap");
     if (!player || !readyToPlay) return;
 
-    if (player.playing) {
-      player.pause();
-      setUserPaused(true);
-    } else {
-      player.play();
-      setUserPaused(false);
+    try {
+      if (player.playing) {
+        player.pause();
+        setUserPaused(true);
+      } else {
+        if (Platform.OS === "ios") {
+          setTimeout(() => {
+            player.play();
+            setUserPaused(false);
+          }, 100);
+        } else {
+          player.play();
+          setUserPaused(false);
+        }
+      }
+    } catch (error) {
+      console.error("Tap handling error:", error);
     }
   }, [player, readyToPlay]);
 
@@ -125,17 +140,24 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
 
   useEffect(() => {
     if (!player || !readyToPlay) return;
+
     const handlePlayback = async () => {
-      if (isActive && !player.playing) {
-        player.play();
-        setUserPaused(false);
-      } else {
-        player.pause();
+      try {
+        if (isActive && !userPaused) {
+          if (Platform.OS === "ios") {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+          await player.play();
+        } else {
+          await player.pause();
+        }
+      } catch (error) {
+        console.error("Playback error:", error);
       }
     };
 
     handlePlayback();
-  }, [isActive, readyToPlay]);
+  }, [isActive, readyToPlay, player, userPaused]);
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -199,6 +221,8 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
             nativeControls={false}
+            requiresLinearPlayback={Platform.OS === "ios"}
+            showsTimecodes={false}
           />
 
           <TouchableWithoutFeedback onPress={handlePress}>

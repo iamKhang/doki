@@ -72,7 +72,7 @@ export default function EnhancedLoginScreen() {
       // Replace with your signup logic
       const result = await dispatch(signUp({ email, password }));
       if (result) {
-        router.push("/profile");
+        router.push("/(tabs)/profile");
       }
       setErrorMessages("Sign up successful");
     } catch (error) {
