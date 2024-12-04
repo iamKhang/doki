@@ -5,7 +5,7 @@ import { Tabs } from "expo-router";
 import { House, MessageCircle, Search, UserRound } from "lucide-react-native";
 import { useEffect } from "react";
 
-export default function TabsLayout() {
+export default function TabLayout() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile/index"
+        name="profile"
         options={{
           title: "Profile",
           tabBarIcon: (color) => (
@@ -68,6 +68,7 @@ export default function TabsLayout() {
               style={{ width: color.size, height: color.size }}
             />
           ),
+          href: "/profile/me",
         }}
       />
     </Tabs>
