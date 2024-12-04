@@ -83,14 +83,17 @@ export type Database = {
       }
       likes: {
         Row: {
+          like_at: string | null
           post_id: string
           user_id: string
         }
         Insert: {
+          like_at?: string | null
           post_id: string
           user_id: string
         }
         Update: {
+          like_at?: string | null
           post_id?: string
           user_id?: string
         }
@@ -116,6 +119,7 @@ export type Database = {
           created_at: string | null
           like_total: number | null
           post_id: string
+          private: boolean | null
           thumbnail_url: string | null
           title: string
           updated_at: string | null
@@ -127,6 +131,7 @@ export type Database = {
           created_at?: string | null
           like_total?: number | null
           post_id?: string
+          private?: boolean | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string | null
@@ -138,6 +143,7 @@ export type Database = {
           created_at?: string | null
           like_total?: number | null
           post_id?: string
+          private?: boolean | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string | null
@@ -323,6 +329,7 @@ export type Database = {
               created_at: string | null
               like_total: number | null
               post_id: string
+              private: boolean | null
               thumbnail_url: string | null
               title: string
               updated_at: string | null
@@ -341,6 +348,7 @@ export type Database = {
               created_at: string | null
               like_total: number | null
               post_id: string
+              private: boolean | null
               thumbnail_url: string | null
               title: string
               updated_at: string | null

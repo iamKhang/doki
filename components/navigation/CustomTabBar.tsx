@@ -54,13 +54,11 @@ export default function CustomTabBar({
         "flex-row items-center gap-1 px-2 py-2",
         isHome ? "bg-black" : "bg-white",
         Platform.OS === "ios" && "pb-6", // iOS safe area
-        Platform.OS === "web" && "fixed bottom-0 left-0 right-0", // Web fixed positioning
       )}
       style={{
         height: tabBarHeight,
         borderTopWidth: 0.5,
         borderTopColor: "rgb(209, 213, 219)",
-        zIndex: Platform.OS === "web" ? 50 : undefined,
       }}>
       {tabsRoutes.map((route, index) => {
         const { options } = descriptors[route.key];
@@ -90,10 +88,7 @@ export default function CustomTabBar({
             {index === middleIndex && CenterButton}
             <Pressable
               key={route.key}
-              className={clsx(
-                "flex-1 items-center justify-center py-2",
-                Platform.OS === "web" && "cursor-pointer hover:opacity-80",
-              )}
+              className={clsx("flex-1 items-center justify-center py-2")}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={options.tabBarAccessibilityLabel}

@@ -1,7 +1,12 @@
 import { Input, InputField, InputSlot } from "@/components/ui/input";
 import { Clock4, SearchIcon, X } from "lucide-react-native";
-import React, { useRef } from "react";
-import { FlatList, StatusBar, TouchableOpacity } from "react-native";
+import React, { useRef, useState } from "react";
+import {
+  FlatList,
+  StatusBar,
+  TouchableHighlight,
+  TouchableOpacity,
+} from "react-native";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 
 import { SafeAreaView } from "react-native";
@@ -23,21 +28,16 @@ import {
 } from "@/components/ui/modal";
 import VideoItem from "@/components/VideoItem";
 import { Spinner } from "@/components/ui/spinner";
+import SearchService from "@/services/SearchService";
+import {
+  Avatar,
+  AvatarFallbackText,
+  AvatarImage,
+} from "@/components/ui/avatar";
 
 const height = StatusBar.currentHeight;
 
-const suggestions = [
-  "TikTok Dance Challenges",
-  "Lip Sync Videos",
-  "Comedy Skits",
-  "DIY and Craft Tutorials",
-  "Fitness and Workout Routines",
-  "Cooking and Recipe Videos",
-  "Fashion and Beauty Tips",
-  "Pet Videos",
-  "Travel Vlogs",
-  "Life Hacks",
-];
+const suggestions = ["Dance", "Trend", "Doki", "#trip"];
 
 const SuggestionItem = ({
   title,
@@ -71,12 +71,10 @@ const PreviewItem = ({
   onPress: VoidFunction;
 }) => {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      className="w-[calc(50%-16px)] max-w-[50%]">
+    <TouchableOpacity onPress={onPress} className="flex-1">
       <VStack>
         <Image
-          source={require("../../assets/static/thumbnail.png")}
+          source={{ uri: post.thumbnail_url }}
           className="h-[250px] w-full rounded-lg object-contain"
           alt={post.title}
         />
@@ -86,13 +84,21 @@ const PreviewItem = ({
   );
 };
 
-type TABS = "videos" | "categories" | "users";
+type TABS = "videos" | "users" | "topics";
 
 export default function SearchScreen() {
   const [query, setQuery] = React.useState("");
   const [tab, setTab] = React.useState<TABS>("videos");
-  const [posts, setPosts] = React.useState<Post[]>([]);
-  const postService = useRef(new PostService());
+  const [searchResults, setSearchResults] = useState<{
+    posts: Post[];
+    users: User[];
+    topics: Topic[];
+  }>({
+    posts: [],
+    users: [],
+    topics: [],
+  });
+  const searchService = useRef(new SearchService());
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [previewVideo, setPreviewVideo] = React.useState<{
     show: boolean;
@@ -103,11 +109,78 @@ export default function SearchScreen() {
   });
 
   const handleSearch = async () => {
-    setSearchLoading(true);
-    const results = await postService.current.search(query);
+    if (!query.trim()) return;
 
-    setPosts(results);
-    setSearchLoading(false);
+    setSearchLoading(true);
+    try {
+      const results = await searchService.current.searchAll(query);
+      // @ts-ignore
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Search error:", error);
+      // Handle error appropriately
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const renderResults = () => {
+    const hasResults = {
+      videos: searchResults.posts.length > 0,
+      users: searchResults.users.length > 0,
+      topics: searchResults.topics.length > 0,
+    }[tab];
+
+    if (!hasResults) {
+      return (
+        <Center className="w-full py-4">
+          <VStack space="md" className="items-center">
+            <Text className="text-lg font-semibold">No results found</Text>
+            <Text className="text-center text-gray-500">
+              We couldn't find any {tab} matching your search
+            </Text>
+          </VStack>
+        </Center>
+      );
+    }
+
+    switch (tab) {
+      case "videos":
+        return (
+          <FlatList
+            data={searchResults.posts}
+            numColumns={2}
+            columnWrapperStyle={{
+              justifyContent: "space-between",
+              gap: 16,
+              marginBottom: 16,
+            }}
+            renderItem={({ item: post }) => (
+              <PreviewItem
+                post={post}
+                onPress={() => {
+                  setPreviewVideo({
+                    show: true,
+                    item: post,
+                  });
+                }}
+              />
+            )}
+            keyExtractor={(item) => item.post_id}
+            contentContainerStyle={{ paddingTop: 8 }}
+          />
+        );
+      case "users":
+        return searchResults.users.map((user) => (
+          <UserPreviewItem key={user.user_id} user={user} />
+        ));
+      case "topics":
+        return searchResults.topics.map((topic) => (
+          <TopicPreviewItem key={topic.topic_id} topic={topic} />
+        ));
+      default:
+        return null;
+    }
   };
 
   return (
@@ -115,7 +188,7 @@ export default function SearchScreen() {
       {/* Header */}
       <VStack className="fixed left-0 right-0 top-0 h-fit border-b border-gray-50">
         <HStack className="mb-4 gap-4">
-          <Input className="w-full flex-1 rounded-lg px-4">
+          <Input className="w-full flex-1 items-center rounded-lg px-4">
             <InputSlot>
               <SearchIcon size={22} color="black" />
             </InputSlot>
@@ -123,7 +196,8 @@ export default function SearchScreen() {
               placeholder="Search video..."
               value={query}
               onChangeText={setQuery}
-              onSubmitEditing={handleSearch} // This will handle the Enter key press on mobile
+              onSubmitEditing={handleSearch}
+              className="my-0 h-full py-0"
             />
             {query.length > 0 && (
               <InputSlot onPress={() => setQuery("")}>
@@ -137,7 +211,7 @@ export default function SearchScreen() {
           </Button>
         </HStack>
         <HStack className="w-full justify-start">
-          {(["videos", "categories", "users"] as TABS[]).map((item) => (
+          {(["videos", "users", "topics"] as TABS[]).map((item) => (
             <Button
               key={item}
               className={clsx("px-4 text-black", {
@@ -168,30 +242,13 @@ export default function SearchScreen() {
         />
       )}
 
-      {searchLoading && <Spinner />}
-
-      {!searchLoading && query.length > 0 && posts.length == 0 && (
-        <Center className="pt-8">
-          <Text>Not found</Text>
-        </Center>
+      {searchLoading && (
+        <Box className="py-4">
+          <Spinner />
+        </Box>
       )}
 
-      {!searchLoading && query.length > 0 && posts.length != 0 && (
-        <VStack className="flex-row flex-wrap justify-between gap-4 pt-8">
-          {posts.map((post) => (
-            <PreviewItem
-              post={post}
-              key={post.post_id}
-              onPress={() => {
-                setPreviewVideo({
-                  show: true,
-                  item: post,
-                });
-              }}
-            />
-          ))}
-        </VStack>
-      )}
+      {!searchLoading && query.length > 0 && renderResults()}
 
       {previewVideo.show && previewVideo.item && (
         <Modal
@@ -204,7 +261,7 @@ export default function SearchScreen() {
             }));
           }}>
           <ModalContent className="bg-black p-0">
-            <ModalBody className="p-0">
+            <ModalBody className="fixed bottom-0 left-0 right-0 top-0 p-0">
               <VideoItem
                 item={previewVideo.item}
                 isActive={true}
@@ -219,3 +276,29 @@ export default function SearchScreen() {
     </SafeAreaView>
   );
 }
+
+const UserPreviewItem = ({ user }: { user: User }) => {
+  return (
+    <HStack className="w-full items-start gap-2 rounded-lg bg-white p-2 px-4 shadow-sm">
+      <Avatar size="md">
+        <AvatarFallbackText></AvatarFallbackText>
+        <AvatarImage
+          source={{
+            uri: user.avatar_url,
+          }}
+          alt="avatar"
+        />
+      </Avatar>
+      <VStack>
+        <Text className="text-lg font-semibold">
+          {user.first_name} {user.last_name}
+        </Text>
+        <Text className="text-sm text-gray-500">@{user.username}</Text>
+      </VStack>
+    </HStack>
+  );
+};
+
+const TopicPreviewItem = ({ topic }: { topic: Topic }) => {
+  return <Text>{topic.topic_name}</Text>;
+};

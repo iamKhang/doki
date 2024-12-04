@@ -4,7 +4,6 @@ import { useAppDispatch } from "@/store/hooks";
 import { Tabs } from "expo-router";
 import { House, MessageCircle, Search, UserRound } from "lucide-react-native";
 import { useEffect } from "react";
-import { View } from "react-native";
 
 export default function TabsLayout() {
   const dispatch = useAppDispatch();
