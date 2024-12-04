@@ -31,7 +31,6 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="post" />
-          <Stack.Screen name="profile/index" />
         </Stack>
       </GluestackUIProvider>
     </Provider>

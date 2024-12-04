@@ -19,6 +19,7 @@ import LikeService from "@/services/LikeService";
 import { useAppSelector } from "@/store/hooks";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system";
+import { router } from "expo-router";
 
 interface ActionTabProps {
   owner: User | null;
@@ -46,6 +47,10 @@ const ActionTab = ({
   const auth = useAppSelector((state) => state.auth);
   const likeService = new LikeService();
   const user = auth.user;
+
+  const handleProfilePress = () => {
+    router.push(`/profile/${owner?.user_id}`);
+  };
 
   const handleShare = async () => {
     try {
@@ -97,19 +102,21 @@ const ActionTab = ({
       className={clsx("absolute bottom-12 right-4 z-30 items-center gap-4", {
         "bottom-24": Platform.OS === "ios",
       })}>
-      <Avatar size="md" className="mb-8">
-        <AvatarFallbackText>
-          {(owner?.first_name?.[0] || "") + (owner?.last_name?.[0] || "")}
-        </AvatarFallbackText>
-        <AvatarImage
-          source={
-            owner?.avatar_url
-              ? { uri: owner?.avatar_url }
-              : require("@/assets/images/avatar.jpg")
-          }
-        />
-        <AvatarBadge />
-      </Avatar>
+      <TouchableWithoutFeedback onPress={handleProfilePress}>
+        <Avatar size="md" className="mb-8">
+          <AvatarFallbackText>
+            {(owner?.first_name?.[0] || "") + (owner?.last_name?.[0] || "")}
+          </AvatarFallbackText>
+          <AvatarImage
+            source={
+              owner?.avatar_url
+                ? { uri: owner?.avatar_url }
+                : require("@/assets/images/avatar.jpg")
+            }
+          />
+          <AvatarBadge />
+        </Avatar>
+      </TouchableWithoutFeedback>
 
       <TouchableWithoutFeedback onPress={onToggleLike}>
         <VStack style={{ alignItems: "center" }}>

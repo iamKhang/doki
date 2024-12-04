@@ -20,7 +20,7 @@ import {
   ShoppingBasket,
   UserRoundPlus,
 } from "lucide-react-native";
-import { Text, TouchableHighlight } from "react-native";
+import { Text, TouchableHighlight, TouchableOpacity } from "react-native";
 import {
   GestureHandlerRootView,
   ScrollView,
@@ -59,6 +59,12 @@ export default function ProfilePage() {
   );
   const [privatePosts, setPrivatePosts] = useState<Post[]>([]);
   const [likedPosts, setLikedPosts] = useState<Post[]>([]);
+  const [privatePage, setPrivatePage] = useState(0);
+  const [likedPage, setLikedPage] = useState(0);
+  const [hasMorePrivate, setHasMorePrivate] = useState(true);
+  const [hasMoreLiked, setHasMoreLiked] = useState(true);
+  const [loadingMorePrivate, setLoadingMorePrivate] = useState(false);
+  const [loadingMoreLiked, setLoadingMoreLiked] = useState(false);
 
   useEffect(() => {
     const loadInitialPosts = async () => {
@@ -69,6 +75,7 @@ export default function ProfilePage() {
           0,
           pageSize,
           auth.appUser,
+          false,
         );
         setPosts(initialPosts as Post[]);
       }
@@ -99,6 +106,7 @@ export default function ProfilePage() {
           page,
           pageSize,
           auth.appUser,
+          false,
         )) as Post[])
       : [];
 
@@ -115,8 +123,18 @@ export default function ProfilePage() {
     const isCloseToBottom =
       layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
 
-    if (isCloseToBottom && !loadingMore) {
-      loadMorePosts();
+    if (isCloseToBottom) {
+      switch (activeTab) {
+        case "all":
+          if (!loadingMore) loadMorePosts();
+          break;
+        case "private":
+          if (!loadingMorePrivate) loadMorePrivatePosts();
+          break;
+        case "liked":
+          if (!loadingMoreLiked) loadMoreLikedPosts();
+          break;
+      }
     }
   };
 
@@ -128,40 +146,100 @@ export default function ProfilePage() {
     await dispatch(signOut());
   };
 
-  const loadPrivatePosts = async () => {
-    setLoading(true);
+  const loadPrivatePosts = async (isInitial = true) => {
+    if (isInitial) {
+      setLoading(true);
+      setPrivatePage(0);
+      setHasMorePrivate(true);
+    }
     const postService = new PostService();
     if (auth.appUser) {
+      const currentPage = isInitial ? 0 : privatePage;
       const privatePostsData = await postService.getPostsByUser(
-        0,
+        currentPage,
         pageSize,
         auth.appUser,
         true,
       );
-      setPrivatePosts(privatePostsData as Post[]);
+
+      if (privatePostsData.length < pageSize) {
+        setHasMorePrivate(false);
+      }
+      if (privatePostsData.length > 0) {
+        setPrivatePosts((prev: Post[]) =>
+          isInitial
+            ? (privatePostsData as Post[])
+            : [...prev, ...(privatePostsData as Post[])],
+        );
+        if (!isInitial) {
+          setPrivatePage(currentPage + 1);
+        }
+      }
     }
     setLoading(false);
   };
 
-  const loadLikedPosts = async () => {
-    setLoading(true);
-    const postService = new PostService();
+  const loadLikedPosts = async (isInitial = true) => {
+    if (isInitial) {
+      setLoading(true);
+      setLikedPage(0);
+      setHasMoreLiked(true);
+    }
     if (auth.appUser) {
       const { data: likedPostsData } = await supabase
         .from("likes")
-        .select(
-          `
-          posts (*)
-        `,
-        )
+        .select(`posts (*)`)
         .eq("user_id", auth.appUser.user_id)
-        .limit(pageSize);
+        .range(
+          isInitial ? 0 : (likedPage + 1) * pageSize,
+          isInitial ? pageSize - 1 : (likedPage + 2) * pageSize - 1,
+        );
 
       if (likedPostsData) {
-        setLikedPosts(likedPostsData.map((item) => item.posts) as Post[]);
+        const posts = likedPostsData.map((item) => item.posts) as Post[];
+        if (posts.length < pageSize) {
+          setHasMoreLiked(false);
+        }
+        if (posts.length > 0) {
+          setLikedPosts((prev) => (isInitial ? posts : [...prev, ...posts]));
+          if (!isInitial) {
+            setLikedPage((prev) => prev + 1);
+          }
+        }
       }
     }
     setLoading(false);
+  };
+
+  const loadMorePrivatePosts = async () => {
+    if (loadingMorePrivate || !hasMorePrivate) return;
+    setLoadingMorePrivate(true);
+    await loadPrivatePosts(false);
+    setLoadingMorePrivate(false);
+  };
+
+  const loadMoreLikedPosts = async () => {
+    if (loadingMoreLiked || !hasMoreLiked) return;
+    setLoadingMoreLiked(true);
+    await loadLikedPosts(false);
+    setLoadingMoreLiked(false);
+  };
+
+  const handleEditProfile = () => {
+    router.push("/profile/edit");
+  };
+
+  const handleShareProfile = () => {
+    router.push({
+      pathname: "/(tabs)/profile/share",
+      params: {
+        id: auth.appUser?.user_id,
+      },
+    });
+  };
+
+  const handleCloseModal = () => {
+    setPreviewVideo({ show: false, item: null });
   };
 
   return (
@@ -205,13 +283,11 @@ export default function ProfilePage() {
               </VStack>
             </HStack>
             <HStack space="sm">
-              <Button
-                variant="outline"
-                onPress={() => router.push("/(tabs)/profile/edit-profile")}>
+              <Button variant="outline" onPress={handleEditProfile}>
                 <ButtonText>Sửa hồ sơ</ButtonText>
               </Button>
-              <Button variant="outline">
-                <ButtonText>Chia sẻ hồ sơ </ButtonText>
+              <Button variant="outline" onPress={handleShareProfile}>
+                <ButtonText>Chia sẻ hồ sơ</ButtonText>
               </Button>
               <Button variant="outline">
                 <ButtonText>
@@ -276,38 +352,57 @@ export default function ProfilePage() {
               </Center>
             ) : (
               <>
-                {activeTab === "all" &&
-                  posts.map((post, index) => (
-                    <PostItem
-                      key={index}
-                      post={post}
-                      onPress={() => handlePostPress(post)}
-                    />
-                  ))}
-                {activeTab === "private" &&
-                  privatePosts.map((post, index) => (
-                    <PostItem
-                      key={index}
-                      post={post}
-                      onPress={() => handlePostPress(post)}
-                    />
-                  ))}
-                {activeTab === "liked" &&
-                  likedPosts.map((post, index) => (
-                    <PostItem
-                      key={index}
-                      post={post}
-                      onPress={() => handlePostPress(post)}
-                    />
-                  ))}
+                {activeTab === "all" && (
+                  <>
+                    {posts.map((post, index) => (
+                      <PostItem
+                        key={index}
+                        post={post}
+                        onPress={() => handlePostPress(post)}
+                      />
+                    ))}
+                    {loadingMore && (
+                      <Center className="w-full py-4">
+                        <Spinner size="small" className="text-slate-500" />
+                      </Center>
+                    )}
+                  </>
+                )}
+                {activeTab === "private" && (
+                  <>
+                    {privatePosts.map((post, index) => (
+                      <PostItem
+                        key={index}
+                        post={post}
+                        onPress={() => handlePostPress(post)}
+                      />
+                    ))}
+                    {loadingMorePrivate && (
+                      <Center className="w-full py-4">
+                        <Spinner size="small" className="text-slate-500" />
+                      </Center>
+                    )}
+                  </>
+                )}
+                {activeTab === "liked" && (
+                  <>
+                    {likedPosts.map((post, index) => (
+                      <PostItem
+                        key={index}
+                        post={post}
+                        onPress={() => handlePostPress(post)}
+                      />
+                    ))}
+                    {loadingMoreLiked && (
+                      <Center className="w-full py-4">
+                        <Spinner size="small" className="text-slate-500" />
+                      </Center>
+                    )}
+                  </>
+                )}
               </>
             )}
           </Box>
-          {loadingMore && (
-            <Center className="py-4">
-              <Spinner size="small" className="text-slate-500" />
-            </Center>
-          )}
         </VStack>
 
         {/* Video Preview Modal */}
@@ -315,15 +410,13 @@ export default function ProfilePage() {
           <Modal
             size="full"
             isOpen={previewVideo.show}
-            onClose={() => setPreviewVideo({ show: false, item: null })}>
+            onClose={handleCloseModal}>
             <ModalContent className="bg-black p-0">
               <ModalBody className="p-0">
                 <VideoItem
                   item={previewVideo.item}
                   isActive={true}
-                  onClosed={() =>
-                    setPreviewVideo((prev) => ({ ...prev, show: false }))
-                  }
+                  onClosed={handleCloseModal}
                 />
               </ModalBody>
             </ModalContent>

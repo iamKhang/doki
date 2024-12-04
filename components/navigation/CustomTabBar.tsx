@@ -19,7 +19,7 @@ export default function CustomTabBar({
   const tabBarHeight = useTabBarHeight();
 
   const tabsRoutes = state.routes.filter((route) =>
-    ["index", "search", "notification", "profile/index"].includes(route.name),
+    ["index", "search", "notification", "profile"].includes(route.name),
   );
 
   const middleIndex = Math.floor(tabsRoutes.length / 2);
@@ -53,7 +53,7 @@ export default function CustomTabBar({
       className={clsx(
         "flex-row items-center gap-1 px-2 py-2",
         isHome ? "bg-black" : "bg-white",
-        Platform.OS === "ios" && "pb-6", // iOS safe area
+        Platform.OS === "ios" && "pb-6",
       )}
       style={{
         height: tabBarHeight,
@@ -79,7 +79,11 @@ export default function CustomTabBar({
           });
 
           if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name, route.params);
+            if (route.name === "profile") {
+              navigation.navigate("profile", { screen: "me" });
+            } else {
+              navigation.navigate(route.name);
+            }
           }
         };
 

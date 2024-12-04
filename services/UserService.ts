@@ -3,6 +3,10 @@ import supabase from "@/configs/supabase/supabase";
 interface IUserService extends QueryService {
   getUsersByPage<User>(page: number, pageSize: number): Promise<User[]>;
   search: (query: string) => Promise<any>;
+  getFollowerCount(userId: string): Promise<number>;
+  isFollowing(followerId: string, followingId: string): Promise<boolean>;
+  followUser(followerId: string, followingId: string): Promise<void>;
+  unfollowUser(followerId: string, followingId: string): Promise<void>;
 }
 
 export default class UserService implements IUserService {
@@ -67,5 +71,37 @@ export default class UserService implements IUserService {
 
     if (error) throw error;
     return data as User[];
+  }
+
+  async getFollowerCount(userId: string): Promise<number> {
+    const { count } = await supabase
+      .from("followers")
+      .select("*", { count: "exact" })
+      .eq("followed_user_id", userId);
+    return count || 0;
+  }
+
+  async isFollowing(followerId: string, followingId: string): Promise<boolean> {
+    const { data } = await supabase
+      .from("followers")
+      .select("*")
+      .eq("follower_id", followerId)
+      .eq("followed_user_id", followingId)
+      .single();
+    return !!data;
+  }
+
+  async followUser(followerId: string, followingId: string): Promise<void> {
+    await supabase
+      .from("followers")
+      .insert({ follower_id: followerId, followed_user_id: followingId });
+  }
+
+  async unfollowUser(followerId: string, followingId: string): Promise<void> {
+    await supabase
+      .from("followers")
+      .delete()
+      .eq("follower_id", followerId)
+      .eq("followed_user_id", followingId);
   }
 }
