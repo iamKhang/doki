@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { TouchableOpacity, ScrollView, Share } from "react-native";
 import { Box } from "@/components/ui/box";
 import { VStack } from "@/components/ui/vstack";
@@ -6,7 +6,7 @@ import { HStack } from "@/components/ui/hstack";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { Image } from "@/components/ui/image";
-import { useRouter } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   ChevronLeft,
   Copy,
@@ -14,18 +14,37 @@ import {
   Check,
 } from "lucide-react-native";
 import Constants from "expo-constants";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
 import QRCode from "react-native-qrcode-svg";
 import * as Clipboard from "expo-clipboard";
+import UserService from "@/services/UserService";
+import { Spinner } from "@/components/ui/spinner";
+import { Center } from "@/components/ui/center";
 
 export default function ShareProfile() {
-  const router = useRouter();
-  const auth = useSelector((state: RootState) => state.auth);
+  const { id } = useLocalSearchParams();
+  const [userData, setUserData] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const alertTimeout = useRef<NodeJS.Timeout>();
-  const profileUrl = `doki/${auth.appUser?.username || ""}`;
+  const profileUrl = `doki/${userData?.username || ""}`;
+
+  useEffect(() => {
+    loadUserData();
+  }, [id]);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      const userService = new UserService();
+      const user = await userService.getOne(id as string);
+      setUserData(user as User);
+    } catch (error) {
+      console.error("Error loading user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBack = () => {
     router.back();
@@ -49,12 +68,24 @@ export default function ShareProfile() {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Xem hồ sơ của tôi trên Doki: ${profileUrl}`,
+        message: `Xem hồ sơ của ${userData?.username} trên Doki: ${profileUrl}`,
       });
     } catch (error) {
       console.error(error);
     }
   };
+
+  if (loading) {
+    return (
+      <Box
+        className="flex-1 bg-[#FF2C55]"
+        style={{ paddingTop: Constants.statusBarHeight }}>
+        <Center className="flex-1">
+          <Spinner size="large" color="white" />
+        </Center>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -76,8 +107,7 @@ export default function ShareProfile() {
             <Box className="h-28 w-28 overflow-hidden rounded-full border-4 border-white/30">
               <Image
                 source={{
-                  uri:
-                    auth.appUser?.avatar_url || "https://placeholder.com/150",
+                  uri: userData?.avatar_url || "https://placeholder.com/150",
                 }}
                 alt="Avatar"
                 className="h-full w-full"
@@ -85,10 +115,10 @@ export default function ShareProfile() {
             </Box>
             <VStack className="items-center space-y-1">
               <Text className="text-2xl font-bold text-white">
-                {auth.appUser?.username || "Username"}
+                {userData?.username || "Username"}
               </Text>
               <Text className="text-sm text-white/80">
-                Quét mã QR để xem hồ sơ của tôi
+                Quét mã QR để xem hồ sơ
               </Text>
             </VStack>
           </VStack>

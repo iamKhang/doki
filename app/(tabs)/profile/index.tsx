@@ -169,7 +169,12 @@ export default function ProfilePage() {
   };
 
   const handleShareProfile = () => {
-    router.push("/profile/share-profile");
+    router.push({
+      pathname: "/profile/share-profile",
+      params: {
+        id: auth.appUser?.user_id,
+      },
+    });
   };
 
   return (
