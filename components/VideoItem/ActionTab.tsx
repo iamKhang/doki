@@ -3,7 +3,6 @@ import { TouchableWithoutFeedback } from "react-native";
 import { Platform } from "react-native";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
-import { Bookmark } from "lucide-react-native";
 import {
   Avatar,
   AvatarBadge,
@@ -95,7 +94,7 @@ const ActionTab = ({
 
   return (
     <VStack
-      className={clsx("absolute bottom-12 right-4 z-20 items-center gap-4", {
+      className={clsx("absolute bottom-12 right-4 z-30 items-center gap-4", {
         "bottom-24": Platform.OS === "ios",
       })}>
       <Avatar size="md" className="mb-8">

@@ -218,7 +218,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
         <Box style={{ height: "100%", width: "100%" }} className="relative">
           <VideoView
             player={player}
-            style={{ width: "100%", height: "100%" }}
+            style={{ width: "100%", height: "100%", zIndex: -10 }}
             contentFit="cover"
             nativeControls={false}
             requiresLinearPlayback={Platform.OS === "ios"}
@@ -227,7 +227,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
 
           <TouchableWithoutFeedback onPress={handlePress}>
             <Box
-              className="absolute inset-0 z-10"
+              className="absolute inset-0 z-0"
               style={{
                 backgroundColor: "transparent",
                 height: "100%",
@@ -317,6 +317,7 @@ const VideoItem = ({ item, isActive, onClosed }: VideoItemProps) => {
         comments={comments}
         setComments={setComments}
         commentLoading={commentLoading}
+        item={item}
         auth={auth}
       />
     </>

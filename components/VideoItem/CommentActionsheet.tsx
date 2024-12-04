@@ -5,7 +5,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-import { Send } from "lucide-react-native";
+import { Send, Sparkle } from "lucide-react-native";
 import {
   Actionsheet,
   ActionsheetBackdrop,
@@ -27,6 +27,8 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { formatNumber } from "@/utils/Format";
+import { generateResponse } from "@/services/AIService";
+import { Text } from "@/components/ui/text";
 
 interface CommentActionsheetProps {
   isOpen: boolean;
@@ -36,6 +38,7 @@ interface CommentActionsheetProps {
   setComments: React.Dispatch<React.SetStateAction<ExtendedComment[] | null>>;
   commentLoading: boolean;
   auth: any;
+  item: Post;
 }
 
 const CommentActionsheet = ({
@@ -46,9 +49,12 @@ const CommentActionsheet = ({
   setComments,
   commentLoading,
   auth,
+  item,
 }: CommentActionsheetProps) => {
   const [commentInput, setCommentInput] = useState<string>("");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener(
@@ -88,6 +94,27 @@ const CommentActionsheet = ({
       prev !== null ? [createdComment, ...prev] : [createdComment],
     );
     setCommentInput("");
+  };
+
+  const handleAIComment = async () => {
+    try {
+      setCommentInput("");
+      setErrorMessage(null);
+      setIsGeneratingAI(true);
+      const response = await generateResponse(
+        "generate a random comment, do not say hello again. The video content is: " +
+          item.title,
+      );
+      if (response) {
+        console.log(response);
+        setCommentInput(response?.text || "");
+      }
+    } catch (error: any) {
+      setErrorMessage(error.message);
+      console.error("Failed to generate AI comment:", error.message);
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   return (
@@ -143,7 +170,10 @@ const CommentActionsheet = ({
               <AvatarBadge />
             </Avatar>
 
-            <Input isFullWidth className="ml-4 flex-1 rounded-full">
+            <Input
+              isFullWidth
+              className="ml-4 flex-1 rounded-full"
+              isDisabled={isGeneratingAI}>
               <InputField
                 value={commentInput}
                 onChangeText={(text) => setCommentInput(text)}
@@ -151,6 +181,22 @@ const CommentActionsheet = ({
                 className="w-full p-0 px-4"
               />
             </Input>
+
+            <TouchableWithoutFeedback
+              onPress={handleAIComment}
+              disabled={isGeneratingAI}>
+              <Center className="ml-2 h-[35px] w-[35px] rounded-full bg-blue-500 p-1">
+                {isGeneratingAI ? (
+                  <Spinner color="white" size="small" />
+                ) : (
+                  <Sparkle
+                    size={20}
+                    color="white"
+                    className="-translate-x-0.5"
+                  />
+                )}
+              </Center>
+            </TouchableWithoutFeedback>
             <TouchableWithoutFeedback
               onPress={handleComment}
               disabled={commentInput === ""}>
@@ -159,6 +205,11 @@ const CommentActionsheet = ({
               </Center>
             </TouchableWithoutFeedback>
           </HStack>
+        )}
+        {errorMessage && (
+          <Text className="mb-2 text-center text-sm text-red-500">
+            {errorMessage}
+          </Text>
         )}
       </ActionsheetContent>
     </Actionsheet>
